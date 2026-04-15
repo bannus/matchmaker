@@ -136,7 +136,7 @@ export function ProfileSetup() {
                 autoFocus
               />
               <p className="mt-2 text-xs text-gray-500">
-                This is how other players will see you. You can change it later.
+                Your name is only shared with players you're matched with — never visible while browsing. You can change it later.
               </p>
             </div>
           )}
