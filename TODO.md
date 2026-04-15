@@ -19,10 +19,6 @@
 
 ## Features (not yet built)
 
-- [ ] **[P1]** Automated matchmaking trigger
-  - Currently matchmaking only runs via manual SQL (`SELECT run_matchmaking()`)
-  - For production, need pg_cron (scheduled) or a trigger when new availability is posted
-  - pg_cron setup is commented out in the migration file
 - [ ] **[P2]** Email notifications via Resend
 - [ ] **[P2]** Player messaging for match coordination
   - Players need a way to communicate after being matched (e.g., "I'll bring balls", "let's use court 3")

@@ -14,6 +14,14 @@
   - `court_groups`/`courts`: no DELETE policy for admins
   - Fixed via new migration with `get_my_match_ids()` SECURITY DEFINER helper
 
+## Features
+
+- [x] **Automated matchmaking trigger** (April 2026)
+  - Added `trg_matchmaking_on_availability` trigger — runs matchmaking instantly when new availability is posted
+  - Added pg_cron scheduled job every 15 minutes as safety net
+  - Added `exec_sql` service_role-only helper for test trigger management
+  - Migration: `20260415000001_automated_matchmaking.sql`
+
 ## Testing
 
 - [x] **Add integration tests for match responses, profiles, admin** (April 2026)

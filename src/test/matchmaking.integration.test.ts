@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
 
 // These tests run against local Supabase — requires `npm run db:start`
@@ -51,6 +51,16 @@ describe('run_matchmaking()', () => {
         `Cannot connect to local Supabase. Is it running? (npm run db:start)\n${error.message}`
       )
     }
+    // Disable the auto-matchmaking trigger so we can test run_matchmaking() directly
+    await supabase.rpc('exec_sql', {
+      query: 'ALTER TABLE availability DISABLE TRIGGER trg_matchmaking_on_availability',
+    })
+  })
+
+  afterAll(async () => {
+    await supabase.rpc('exec_sql', {
+      query: 'ALTER TABLE availability ENABLE TRIGGER trg_matchmaking_on_availability',
+    })
   })
 
   beforeEach(async () => {
