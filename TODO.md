@@ -44,8 +44,28 @@
   - A scheduled job (or the matchmaking function) expands recurrence into concrete date rows, rolling forward ~2 weeks
   - UI: add a "Repeat" toggle to PostAvailabilityForm with presets (weekly, biweekly) and an end date
   - Player can cancel individual occurrences or the whole series
-- [ ] **[P3]** QR code generation for flyers
+- [ ] **[P2]** QR code flyers with court-aware onboarding
+  - QR codes link to `matchmaker.app/?court=<court_group_id>`
+  - New users who sign up via a court QR code get that court pre-selected as their home court in the profile setup wizard
+  - Store the `court` param in localStorage before auth redirect, read it back in ProfileSetupPage
+  - Admin panel generates printable flyer with QR code per court group
 - [ ] **[P3]** Landing page for unauthenticated users
+- [ ] **[P2]** Court geolocation and map view
+  - Add lat/lng to courts (court_groups already have `location_lat`/`location_lng`)
+  - Show courts on an interactive map (Mapbox GL or Leaflet)
+  - Let admins set location by clicking the map or entering an address
+  - Players can browse courts near them and filter by distance
+- [ ] **[P2]** Bulk availability submission to nearby courts
+  - When posting availability, let players select multiple court groups at once
+  - Show nearby courts sorted by distance (requires geolocation above)
+  - Single form submission creates one availability row per selected court group
+  - Matched at whichever court finds an opponent first
+- [ ] **[P3]** Auto-populate courts from public GIS data
+  - Cambridge has 7 public tennis locations in official open data (GeoJSON, CC license)
+  - Source: `github.com/cambridgegis/cambridgegis_data/Recreation/Athletic_Facilities`
+  - Filter by `Athletics === 'Tennis'`, includes name + lat/lng coordinates
+  - Could expand to other cities with similar open data portals (Boston, Somerville, etc.)
+  - Admin "Import from public data" button that fetches + previews before inserting
 
 ## Untested Flows
 
