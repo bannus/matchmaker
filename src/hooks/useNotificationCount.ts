@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
+
+const POLL_INTERVAL_MS = 15_000
 
 export function useNotificationCount() {
   const { user } = useAuth()
   const [unreadCount, setUnreadCount] = useState(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval>>()
 
   const fetchCount = useCallback(async () => {
     if (!user) return
@@ -36,8 +39,12 @@ export function useNotificationCount() {
       )
       .subscribe()
 
+    // Polling fallback in case Realtime is slow or misconfigured
+    intervalRef.current = setInterval(fetchCount, POLL_INTERVAL_MS)
+
     return () => {
       supabase.removeChannel(channel)
+      clearInterval(intervalRef.current)
     }
   }, [fetchCount, user?.id])
 
