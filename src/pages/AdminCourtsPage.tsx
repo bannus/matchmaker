@@ -138,6 +138,39 @@ function CourtForm({
           placeholder="e.g. Court 1"
         />
       </div>
+      <CourtFieldsShared form={form} setForm={setForm} idSuffix="edit" />
+      <div className="flex gap-2 pt-1">
+        <button
+          onClick={() => onSave(form)}
+          disabled={!form.name.trim() || saving}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 text-gray-600 hover:text-gray-900 text-sm"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// --- Shared court fields (sport, surface, lighting, notes) ---
+
+function CourtFieldsShared({
+  form,
+  setForm,
+  idSuffix,
+}: {
+  form: CourtFormData
+  setForm: (f: CourtFormData) => void
+  idSuffix: string
+}) {
+  return (
+    <>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -174,13 +207,13 @@ function CourtForm({
       </div>
       <div className="flex items-center gap-2">
         <input
-          id="is-lit"
+          id={`is-lit-${idSuffix}`}
           type="checkbox"
           checked={form.is_lit}
           onChange={(e) => setForm({ ...form, is_lit: e.target.checked })}
           className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
         />
-        <label htmlFor="is-lit" className="text-sm text-gray-700">
+        <label htmlFor={`is-lit-${idSuffix}`} className="text-sm text-gray-700">
           Court has lighting
         </label>
       </div>
@@ -196,13 +229,88 @@ function CourtForm({
           placeholder="Optional notes"
         />
       </div>
+    </>
+  )
+}
+
+// --- Bulk Court Form ---
+
+function BulkCourtForm({
+  existingCount,
+  onSave,
+  onCancel,
+  saving,
+}: {
+  existingCount: number
+  onSave: (courts: CourtFormData[]) => void
+  onCancel: () => void
+  saving: boolean
+}) {
+  const [count, setCount] = useState(1)
+  const [namePrefix, setNamePrefix] = useState('Court')
+  const [courtFields, setCourtFields] = useState<CourtFormData>({
+    ...emptyCourtForm,
+    name: '',
+  })
+
+  const startNumber = existingCount + 1
+  const preview =
+    count === 1
+      ? `${namePrefix} ${startNumber}`
+      : `${namePrefix} ${startNumber}–${startNumber + count - 1}`
+
+  const handleSave = () => {
+    const courts: CourtFormData[] = Array.from({ length: count }, (_, i) => ({
+      ...courtFields,
+      name: `${namePrefix.trim()} ${startNumber + i}`,
+    }))
+    onSave(courts)
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Number of Courts
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={50}
+            value={count}
+            onChange={(e) =>
+              setCount(Math.max(1, Math.min(50, Number(e.target.value))))
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Name Prefix
+          </label>
+          <input
+            type="text"
+            value={namePrefix}
+            onChange={(e) => setNamePrefix(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
+            placeholder="e.g. Court"
+          />
+        </div>
+      </div>
+      <p className="text-xs text-gray-500">
+        Will create: <span className="font-medium text-gray-700">{preview}</span>
+      </p>
+      <CourtFieldsShared form={courtFields} setForm={setCourtFields} idSuffix="bulk" />
       <div className="flex gap-2 pt-1">
         <button
-          onClick={() => onSave(form)}
-          disabled={!form.name.trim() || saving}
+          onClick={handleSave}
+          disabled={!namePrefix.trim() || count < 1 || saving}
           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
         >
-          {saving ? 'Saving…' : 'Save'}
+          {saving
+            ? 'Adding…'
+            : `Add ${count} ${count === 1 ? 'Court' : 'Courts'}`}
         </button>
         <button
           onClick={onCancel}
@@ -359,6 +467,29 @@ export function AdminCourtsPage() {
     setSaving(false)
     setShowCourtForm(null)
     setEditingCourtId(null)
+    await fetchData()
+  }
+
+  const handleBulkAddCourts = async (
+    courts: CourtFormData[],
+    courtGroupId: string
+  ) => {
+    setSaving(true)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await supabase.from('courts').insert(
+      courts.map((c) => ({
+        court_group_id: courtGroupId,
+        name: c.name.trim(),
+        sport: c.sport,
+        surface_type: c.surface_type.trim() || null,
+        is_lit: c.is_lit,
+        notes: c.notes.trim() || null,
+      })) as any
+    )
+
+    setSaving(false)
+    setShowCourtForm(null)
     await fetchData()
   }
 
@@ -579,9 +710,9 @@ export function AdminCourtsPage() {
               {/* Add court form / button */}
               {showCourtForm === group.id ? (
                 <div className="px-5 py-4">
-                  <CourtForm
-                    initial={emptyCourtForm}
-                    onSave={(data) => handleSaveCourt(data, group.id)}
+                  <BulkCourtForm
+                    existingCount={group.courts.length}
+                    onSave={(courts) => handleBulkAddCourts(courts, group.id)}
                     onCancel={() => setShowCourtForm(null)}
                     saving={saving}
                   />
