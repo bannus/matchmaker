@@ -14,7 +14,6 @@ interface BrowseSlot {
   end_time: string
   match_type: MatchTypePreference
   notes: string | null
-  display_name: string
   ntrp_rating: number | null
 }
 
@@ -43,7 +42,7 @@ export function AvailabilityPage() {
 
     const { data } = await supabase
       .from('availability')
-      .select('id, date, start_time, end_time, match_type, notes, player_id, profiles:player_id(display_name, ntrp_rating)')
+      .select('id, date, start_time, end_time, match_type, notes, player_id, profiles:player_id(ntrp_rating)')
       .eq('court_group_id', profile.court_group_id)
       .eq('status', 'open')
       .neq('player_id', user.id)
@@ -58,7 +57,6 @@ export function AvailabilityPage() {
       end_time: row.end_time,
       match_type: row.match_type,
       notes: row.notes,
-      display_name: row.profiles?.display_name ?? 'Unknown',
       ntrp_rating: row.profiles?.ntrp_rating ?? null,
     }))
     setBrowseSlots(mapped)
@@ -197,7 +195,7 @@ export function AvailabilityPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="space-y-1">
                   <p className="font-medium text-gray-900">
-                    {slot.display_name}
+                    🎾 Player
                     {slot.ntrp_rating != null && (
                       <span className="ml-2 text-sm text-gray-500 font-normal">
                         {getNtrpLabel(slot.ntrp_rating)}
