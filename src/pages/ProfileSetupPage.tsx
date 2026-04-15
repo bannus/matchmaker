@@ -24,6 +24,7 @@ export function ProfileSetup() {
   const [courtGroups, setCourtGroups] = useState<CourtGroupOption[]>([])
   const [selectedCourtGroup, setSelectedCourtGroup] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [expandedRating, setExpandedRating] = useState<number | null>(null)
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export function ProfileSetup() {
   const handleComplete = async () => {
     if (!user) return
     setSaving(true)
+    setSaveError(null)
 
     const profileData = {
       id: user.id,
@@ -57,11 +59,14 @@ export function ProfileSetup() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await supabase.from('profiles').upsert(profileData as any)
 
-    if (!error) {
-      await refreshProfile()
-      navigate('/dashboard', { replace: true })
+    if (error) {
+      setSaveError('Something went wrong saving your profile. Please try again.')
+      setSaving(false)
+      return
     }
-    setSaving(false)
+
+    await refreshProfile()
+    navigate('/dashboard', { replace: true })
   }
 
   const steps: Step[] = ['name', 'rating', 'match-type', 'court-group']
@@ -126,15 +131,22 @@ export function ProfileSetup() {
               >
                 What should we call you?
               </label>
-              <input
-                id="display-name"
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Your name or nickname"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                autoFocus
-              />
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (canGoNext()) goNext()
+                }}
+              >
+                <input
+                  id="display-name"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Your name or nickname"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                  autoFocus
+                />
+              </form>
               <p className="mt-2 text-xs text-gray-500">
                 Your name is only shared with players you're matched with — never visible while browsing. You can change it later.
               </p>
@@ -262,10 +274,11 @@ export function ProfileSetup() {
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-1">
                 Where do you play?
+                <span className="ml-2 text-sm font-normal text-gray-400">Optional</span>
               </h2>
               <p className="text-gray-600 mb-4">
-                Pick your home courts. You can always play at other locations
-                too.
+                Pick your home courts so we can match you with nearby players.
+                You can always change this later in your profile.
               </p>
               {courtGroups.length === 0 ? (
                 <div className="text-center py-6 text-gray-500">
@@ -301,6 +314,13 @@ export function ProfileSetup() {
             </div>
           )}
 
+          {/* Error message */}
+          {saveError && (
+            <div className="mt-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {saveError}
+            </div>
+          )}
+
           {/* Navigation buttons */}
           <div className="flex justify-between mt-6">
             {currentIndex > 0 ? (
@@ -313,17 +333,28 @@ export function ProfileSetup() {
             ) : (
               <div />
             )}
-            <button
-              onClick={goNext}
-              disabled={!canGoNext() || saving}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {saving
-                ? 'Saving...'
-                : currentIndex === steps.length - 1
-                  ? 'Finish setup'
-                  : 'Next →'}
-            </button>
+            <div className="flex items-center gap-3">
+              {step === 'court-group' && selectedCourtGroup === null && courtGroups.length > 0 && (
+                <button
+                  onClick={handleComplete}
+                  disabled={saving}
+                  className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Skip for now
+                </button>
+              )}
+              <button
+                onClick={goNext}
+                disabled={!canGoNext() || saving}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                {saving
+                  ? 'Saving...'
+                  : currentIndex === steps.length - 1
+                    ? 'Finish setup'
+                    : 'Next →'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
