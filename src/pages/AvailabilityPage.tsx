@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { getNtrpLabel } from '../utils/ntrp'
@@ -156,11 +157,20 @@ export function AvailabilityPage() {
                       <span className="capitalize text-gray-600">
                         {slot.match_type}
                       </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(slot.status)}`}
-                      >
-                        {slot.status}
-                      </span>
+                      {slot.status === 'matched' && slot.match_id ? (
+                        <Link
+                          to="/matches"
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(slot.status)} hover:underline cursor-pointer`}
+                        >
+                          matched → view
+                        </Link>
+                      ) : (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(slot.status)}`}
+                        >
+                          {slot.status}
+                        </span>
+                      )}
                     </div>
                     {slot.notes && (
                       <p className="text-sm text-gray-500">{slot.notes}</p>

@@ -59,6 +59,7 @@ export interface Availability {
   status: AvailabilityStatus
   notes: string | null
   recurrence_rule: string | null
+  match_id: string | null
   created_at: string
 }
 

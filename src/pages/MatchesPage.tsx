@@ -19,6 +19,7 @@ interface MatchRow {
   court_group_id: string
   my_response: string
   opponents: { display_name: string; ntrp_rating: number | null }[]
+  opponent_notes: string[]
 }
 
 type Section = 'pending' | 'upcoming' | 'past'
@@ -92,6 +93,21 @@ export function MatchesPage() {
       }
     }
 
+    // Fetch opponent availability notes for each match
+    const { data: availRows } = await supabase
+      .from('availability')
+      .select('match_id, player_id, notes')
+      .in('match_id', matchIds)
+      .not('notes', 'is', null)
+
+    const opponentNotesMap: Record<string, string[]> = {}
+    for (const a of availRows ?? []) {
+      if (a.player_id === user.id) continue
+      if (!a.notes) continue
+      if (!opponentNotesMap[a.match_id]) opponentNotesMap[a.match_id] = []
+      opponentNotesMap[a.match_id].push(a.notes)
+    }
+
     // Assemble rows
     const rows: MatchRow[] = matchData.map((m) => {
       const opps = (allPlayers ?? [])
@@ -108,6 +124,7 @@ export function MatchesPage() {
         court_group_id: m.court_group_id,
         my_response: responseMap[m.id] ?? 'pending',
         opponents: opps,
+        opponent_notes: opponentNotesMap[m.id] ?? [],
       }
     })
 
@@ -304,6 +321,15 @@ export function MatchesPage() {
                             </span>
                             {getCrowdingIndicator(m.id)}
                           </div>
+
+                          {/* Opponent notes from availability */}
+                          {m.opponent_notes.length > 0 && (
+                            <div className="text-sm text-gray-500 italic">
+                              {m.opponent_notes.map((note, i) => (
+                                <p key={i}>💬 {note}</p>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         {/* Actions */}
