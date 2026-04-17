@@ -12,6 +12,26 @@
 
 ## Bugs / Edge Cases
 
+- [ ] **[P2]** Notification badge goes stale after mark-as-read
+  - `useNotificationCount` subscribes to realtime inserts and increments the count
+  - But marking notifications as read in `NotificationsPage` never decrements the badge
+  - `refreshCount()` exists but is never called after mark-as-read
+  - Fix: call `refreshCount()` after marking read, or subscribe to UPDATE events too
+  - Affected: `useNotificationCount.ts`, `NotificationsPage.tsx`, `AppLayout.tsx`
+- [ ] **[P2]** Auth callback leaks subscription and timeout on success
+  - `AuthCallback.tsx` sets up `onAuthStateChange` + a 10s timeout but never cleans them up on the success path
+  - Can cause state updates on unmounted components
+  - Fix: add cleanup in the success branch before navigating away
+  - Affected: `AuthCallback.tsx`
+- [ ] **[P2]** Matchmaking ignores singles/doubles preference
+  - `run_matchmaking()` selects `player_pref` but never uses it in matching logic
+  - All matches are hardcoded to `match_type = 'singles'`
+  - Doubles support is half-built (schema supports it, logic doesn't)
+  - Affected: initial schema migration, `run_matchmaking()` function
+- [ ] **[P3]** Database types out of sync with migrations
+  - `availability.match_id` column added in `20260415000002_availability_match_link.sql` is not in `src/types/database.ts`
+  - Fix: regenerate types with `npx supabase gen types typescript`
+  - Affected: `src/types/database.ts`
 - [ ] **[P3]** Hide calendar links for matches in 'awaiting opponent' state
   - Currently the Upcoming section shows Google Cal / iCal buttons for matches where `status === 'proposed' && my_response === 'accepted'`
   - These should only appear once the match is `confirmed` (both players accepted)
@@ -63,9 +83,44 @@
   - Could expand to other cities with similar open data portals (Boston, Somerville, etc.)
   - Admin "Import from public data" button that fetches + previews before inserting
 
+## UX Issues
+
+- [ ] **[P2]** No error states on data fetches — infinite spinners on failure
+  - Several pages have no `try/catch` around Supabase queries — network failures leave the loading spinner forever
+  - Fix: wrap fetches in try/catch, add error state UI with retry button
+  - Affected: `DashboardPage.tsx`, `CourtsPage.tsx`, `NotificationsPage.tsx`, `AdminCourtsPage.tsx`
+- [ ] **[P3]** Login button has no loading or error feedback
+  - Google sign-in button has no disabled/loading state while auth is in progress
+  - Auth errors are not surfaced to the user
+  - Fix: add loading spinner on click, show error toast on failure
+  - Affected: `LoginPage.tsx`
+- [ ] **[P3]** Accessibility gaps — clickable divs and modal semantics
+  - Notification rows are clickable `<div>`s with no `role="button"`, `tabIndex`, or keyboard handler
+  - Modals (availability form, admin court form) lack `<dialog>` semantics and focus trapping
+  - Affected: `NotificationsPage.tsx`, `PostAvailabilityForm.tsx`, `AdminCourtsPage.tsx`
+- [ ] **[P3]** Mutations fail silently — no user feedback on save errors
+  - Profile save, admin ban/unban, court CRUD swallow errors and just reload data
+  - Fix: surface error messages via toast or inline alert
+  - Affected: `ProfilePage.tsx`, `AdminUsersPage.tsx`, `AdminCourtsPage.tsx`
+
 ## Untested Flows
 
 - [ ] Match cancellation by user (after confirmation)
+
+## Improvements
+
+- [ ] **[P3]** Regenerate Supabase types to eliminate `as any` casts
+  - Multiple files use `as any` on `.upsert()` and `.insert()` calls due to stale/missing types
+  - Fix: run `npx supabase gen types typescript --local > src/types/database.ts` and update Supabase client generic
+  - Affected: `ProfileSetupPage.tsx`, `ProfilePage.tsx`, `AdminCourtsPage.tsx`, `AvailabilityPage.tsx`
+- [ ] **[P3]** Fix N+1 crowding queries in MatchesPage
+  - Each match fires a separate query to count overlapping availability for the crowding indicator
+  - Fix: batch into a single RPC or join in the initial matches query
+  - Affected: `MatchesPage.tsx:136-166`
+- [ ] **[P3]** Add a landing page for unauthenticated users
+  - Currently `/*` redirects to `/dashboard` which bounces to `/login` — no explanation of what the app does
+  - The P3 landing page feature in "Features" covers this, but it's worth noting the current redirect chain is jarring
+  - Could be as simple as a hero section on the login page explaining the app
 
 ## Testing Infrastructure
 

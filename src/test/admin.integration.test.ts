@@ -284,3 +284,87 @@ describe('admin: user management', () => {
     expect(data!.is_banned).toBe(true)
   })
 })
+
+describe('admin: matches visibility', () => {
+  let adminClient: SupabaseClient
+  let playerClient: SupabaseClient
+
+  beforeAll(async () => {
+    adminClient = await createUserClient('admin@localhost', 'password123')
+    playerClient = await createUserClient('player2@localhost', 'password123')
+  })
+
+  afterEach(async () => {
+    await serviceClient.from('match_players').delete().neq('match_id', '00000000-0000-0000-0000-000000000000')
+    await serviceClient.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  })
+
+  it('admin can see matches they are not a participant in', async () => {
+    // Create a match between two other players (admin is not involved)
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const date = tomorrow.toISOString().split('T')[0]
+
+    const { data: match } = await serviceClient
+      .from('matches')
+      .insert({
+        court_group_id: COURT_GROUP_ID,
+        match_type: 'singles',
+        date,
+        start_time: '10:00',
+        end_time: '11:00',
+        status: 'proposed',
+      })
+      .select('id')
+      .single()
+
+    // Only add player2 as participant (admin is NOT a participant)
+    await serviceClient
+      .from('match_players')
+      .insert({ match_id: match!.id, player_id: PLAYER_ID, response: 'pending' })
+
+    // Admin should still see the match due to admin bypass
+    const { data: adminMatches } = await adminClient
+      .from('matches')
+      .select('id')
+      .eq('id', match!.id)
+
+    expect(adminMatches).toHaveLength(1)
+
+    // Non-admin non-participant should NOT see it
+    // (player2 IS a participant, so we can't test negative here — covered by existing test)
+  })
+
+  it('admin dashboard count query returns correct totals', async () => {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const date = tomorrow.toISOString().split('T')[0]
+
+    // Create 2 matches, admin is not a participant in either
+    for (let i = 0; i < 2; i++) {
+      const { data: match } = await serviceClient
+        .from('matches')
+        .insert({
+          court_group_id: COURT_GROUP_ID,
+          match_type: 'singles',
+          date,
+          start_time: `${10 + i}:00`,
+          end_time: `${11 + i}:00`,
+          status: i === 0 ? 'proposed' : 'confirmed',
+        })
+        .select('id')
+        .single()
+
+      await serviceClient
+        .from('match_players')
+        .insert({ match_id: match!.id, player_id: PLAYER_ID, response: 'pending' })
+    }
+
+    const { data, count } = await adminClient
+      .from('matches')
+      .select('id, status', { count: 'exact' })
+
+    expect(count).toBe(2)
+    expect(data).toHaveLength(2)
+  })
+})

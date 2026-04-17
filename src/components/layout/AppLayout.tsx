@@ -38,6 +38,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
             </Link>
 
+            {/* Desktop nav links */}
+            <nav className="hidden md:flex items-center gap-1" data-testid="desktop-nav">
+              {navItems.map((item) => {
+                const isActive = location.pathname.startsWith(item.path)
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-green-50 text-green-700'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </nav>
+
             {/* Profile menu */}
             <div className="flex items-center gap-2">
               <Link

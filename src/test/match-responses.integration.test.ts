@@ -9,40 +9,18 @@ import {
 } from './helpers'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-// Replicates the respond() logic from MatchesPage.tsx
+// Uses the respond_to_match RPC for atomic match responses
 async function respondToMatch(
   client: SupabaseClient,
   matchId: string,
-  playerId: string,
+  _playerId: string,
   response: 'accepted' | 'declined'
 ) {
-  await client
-    .from('match_players')
-    .update({ response, responded_at: new Date().toISOString() })
-    .eq('match_id', matchId)
-    .eq('player_id', playerId)
-
-  if (response === 'accepted') {
-    const { data: players } = await client
-      .from('match_players')
-      .select('response')
-      .eq('match_id', matchId)
-
-    const allAccepted = (players ?? []).every((p) => p.response === 'accepted')
-    if (allAccepted) {
-      await client
-        .from('matches')
-        .update({ status: 'confirmed' })
-        .eq('id', matchId)
-    }
-  }
-
-  if (response === 'declined') {
-    await client
-      .from('matches')
-      .update({ status: 'cancelled' })
-      .eq('id', matchId)
-  }
+  const { error } = await client.rpc('respond_to_match', {
+    p_match_id: matchId,
+    p_response: response,
+  })
+  if (error) throw new Error(`respond_to_match failed: ${error.message}`)
 }
 
 describe('match responses', () => {
@@ -173,5 +151,56 @@ describe('match responses', () => {
       .single()
 
     expect(mp!.response).toBe('pending')
+  })
+
+  it('concurrent accepts both confirm the match (no race condition)', async () => {
+    const matchId = await createProposedMatch()
+
+    // Both players accept concurrently
+    const [result1, result2] = await Promise.all([
+      adminClient.rpc('respond_to_match', { p_match_id: matchId, p_response: 'accepted' }),
+      playerClient.rpc('respond_to_match', { p_match_id: matchId, p_response: 'accepted' }),
+    ])
+
+    // At least one should succeed without error
+    const errors = [result1.error, result2.error].filter(Boolean)
+    // At most one might get "no longer open" if the other confirmed first
+    expect(errors.length).toBeLessThanOrEqual(1)
+
+    // Match must be confirmed regardless
+    const { data } = await serviceClient
+      .from('matches')
+      .select('status')
+      .eq('id', matchId)
+      .single()
+
+    expect(data!.status).toBe('confirmed')
+  })
+
+  it('respond_to_match rejects invalid response values', async () => {
+    const matchId = await createProposedMatch()
+
+    const { error } = await adminClient.rpc('respond_to_match', {
+      p_match_id: matchId,
+      p_response: 'maybe',
+    })
+
+    expect(error).not.toBeNull()
+    expect(error!.message).toContain('Invalid response')
+  })
+
+  it('respond_to_match rejects response to already confirmed match', async () => {
+    const matchId = await createProposedMatch()
+
+    // Confirm the match via service role
+    await serviceClient.from('matches').update({ status: 'confirmed' }).eq('id', matchId)
+
+    const { error } = await adminClient.rpc('respond_to_match', {
+      p_match_id: matchId,
+      p_response: 'accepted',
+    })
+
+    expect(error).not.toBeNull()
+    expect(error!.message).toContain('no longer open')
   })
 })

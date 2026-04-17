@@ -171,34 +171,13 @@ export function MatchesPage() {
   }, [fetchMatches])
 
   const respond = async (matchId: string, response: 'accepted' | 'declined') => {
-    await supabase
-      .from('match_players')
-      .update({ response, responded_at: new Date().toISOString() })
-      .eq('match_id', matchId)
-      .eq('player_id', user!.id)
+    const { error } = await supabase.rpc('respond_to_match', {
+      p_match_id: matchId,
+      p_response: response,
+    } as any)
 
-    // If accepted, check if all players accepted -> confirm match
-    if (response === 'accepted') {
-      const { data: players } = await supabase
-        .from('match_players')
-        .select('response')
-        .eq('match_id', matchId)
-
-      const allAccepted = (players ?? []).every((p) => p.response === 'accepted')
-      if (allAccepted) {
-        await supabase
-          .from('matches')
-          .update({ status: 'confirmed' as const })
-          .eq('id', matchId)
-      }
-    }
-
-    // If declined, cancel the match
-    if (response === 'declined') {
-      await supabase
-        .from('matches')
-        .update({ status: 'cancelled' as const })
-        .eq('id', matchId)
+    if (error) {
+      console.error('Failed to respond to match:', error.message)
     }
 
     fetchMatches()
