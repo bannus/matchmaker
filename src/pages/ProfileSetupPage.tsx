@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { ntrpLevels } from '../utils/ntrp'
+import { getOnboardingCourt, clearOnboardingCourt } from '../utils/onboardingCourt'
 import type { MatchTypePreference } from '../types'
 
 type Step = 'name' | 'rating' | 'match-type' | 'court-group'
@@ -32,7 +33,15 @@ export function ProfileSetup() {
       .from('court_groups')
       .select('id, name, description')
       .then(({ data }) => {
-        if (data) setCourtGroups(data)
+        if (data) {
+          setCourtGroups(data)
+
+          // Pre-select court from QR code onboarding flow
+          const onboardingCourtId = getOnboardingCourt()
+          if (onboardingCourtId && data.some((g) => g.id === onboardingCourtId)) {
+            setSelectedCourtGroup(onboardingCourtId)
+          }
+        }
       })
   }, [])
 
@@ -66,6 +75,7 @@ export function ProfileSetup() {
     }
 
     await refreshProfile()
+    clearOnboardingCourt()
     navigate('/dashboard', { replace: true })
   }
 

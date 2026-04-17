@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { storeOnboardingCourt, isValidUuid } from '../../utils/onboardingCourt'
 
 export function AuthCallback() {
   const navigate = useNavigate()
@@ -9,6 +10,12 @@ export function AuthCallback() {
 
   useEffect(() => {
     let handled = false
+
+    // Persist court context from the redirect URL so ProfileSetupPage can read it
+    const courtParam = searchParams.get('court')
+    if (courtParam && isValidUuid(courtParam)) {
+      storeOnboardingCourt(courtParam)
+    }
 
     const redirect = async (userId: string) => {
       if (handled) return

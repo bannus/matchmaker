@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import type { CourtGroup, Court, Sport } from '../types'
@@ -621,6 +622,12 @@ export function AdminCourtsPage() {
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0">
+                    <Link
+                      to={`/admin/courts/flyer/${group.id}`}
+                      className="px-3 py-1.5 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                    >
+                      QR Flyer
+                    </Link>
                     <button
                       onClick={() => {
                         setEditingGroupId(group.id)

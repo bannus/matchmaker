@@ -57,7 +57,12 @@
   - Helps players gauge how busy a court will be
   - `MatchesPage.tsx`
 
-- [x] **Browse availability tab** (April 2026)
+- [x] **QR code flyers with court-aware onboarding** (April 2026)
+  - QR codes link to `/join?court=<court_group_id>` with dedicated public landing page
+  - New users who sign up via a court QR code get that court pre-selected in the profile setup wizard
+  - Court param passed through auth redirect URLs (survives magic links in different browsers) + localStorage fallback with 1-hour TTL
+  - Admin panel generates printable flyer with QR code per court group (`/admin/courts/flyer/:id`)
+  - `JoinPage.tsx`, `CourtFlyerPage.tsx`, `onboardingCourt.ts`, modified `useAuth.tsx`, `AuthCallback.tsx`, `ProfileSetupPage.tsx`, `LoginPage.tsx`, `AdminCourtsPage.tsx`, `App.tsx`
   - Read-only discovery view showing other players' posted availability
   - Lets players see who's looking for matches at which courts/times
   - `AvailabilityPage.tsx`

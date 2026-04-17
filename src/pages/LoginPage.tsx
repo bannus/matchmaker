@@ -1,19 +1,25 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { getOnboardingCourt } from '../utils/onboardingCourt'
 
 export function LoginPage() {
   const { signInWithGoogle, signInWithMagicLink } = useAuth()
+  const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Court context from QR code flow (URL param or localStorage)
+  const courtGroupId = searchParams.get('court') || getOnboardingCourt() || undefined
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { error } = await signInWithMagicLink(email)
+    const { error } = await signInWithMagicLink(email, courtGroupId)
     if (error) {
       setError(error.message)
     } else {
@@ -35,7 +41,7 @@ export function LoginPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           {/* Google Sign-In */}
           <button
-            onClick={signInWithGoogle}
+            onClick={() => signInWithGoogle(courtGroupId)}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors font-medium"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

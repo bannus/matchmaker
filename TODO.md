@@ -8,7 +8,7 @@
 4. [ ] Deploy to Vercel/Netlify (`npm run build` → deploy `dist/`)
 5. [ ] Set yourself as admin: `UPDATE profiles SET is_admin = true WHERE id = 'your-user-id'`
 6. [ ] Add your 4 local courts via the admin panel
-7. [ ] Print flyers with QR codes pointing to the site!
+7. [ ] Print flyers with QR codes — use Admin → Manage Courts → "QR Flyer" button per court group
 
 ## Bugs / Edge Cases
 
@@ -60,11 +60,6 @@
   - A scheduled job (or the matchmaking function) expands recurrence into concrete date rows, rolling forward ~2 weeks
   - UI: add a "Repeat" toggle to PostAvailabilityForm with presets (weekly, biweekly) and an end date
   - Player can cancel individual occurrences or the whole series
-- [ ] **[P2]** QR code flyers with court-aware onboarding
-  - QR codes link to `matchmaker.app/?court=<court_group_id>`
-  - New users who sign up via a court QR code get that court pre-selected as their home court in the profile setup wizard
-  - Store the `court` param in localStorage before auth redirect, read it back in ProfileSetupPage
-  - Admin panel generates printable flyer with QR code per court group
 - [ ] **[P3]** Landing page for unauthenticated users
 - [ ] **[P2]** Court geolocation and map view
   - Add lat/lng to courts (court_groups already have `location_lat`/`location_lng`)

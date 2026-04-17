@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { clearOnboardingCourt } from '../utils/onboardingCourt'
 import type { Profile } from '../types'
 
 interface AuthContextType {
@@ -8,8 +9,8 @@ interface AuthContextType {
   session: Session | null
   profile: Profile | null
   loading: boolean
-  signInWithGoogle: () => Promise<void>
-  signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>
+  signInWithGoogle: (courtGroupId?: string) => Promise<void>
+  signInWithMagicLink: (email: string, courtGroupId?: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -57,23 +58,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (courtGroupId?: string) => {
+    const callbackUrl = new URL('/auth/callback', window.location.origin)
+    if (courtGroupId) callbackUrl.searchParams.set('court', courtGroupId)
+
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl.toString() },
     })
   }
 
-  const signInWithMagicLink = async (email: string) => {
+  const signInWithMagicLink = async (email: string, courtGroupId?: string) => {
+    const callbackUrl = new URL('/auth/callback', window.location.origin)
+    if (courtGroupId) callbackUrl.searchParams.set('court', courtGroupId)
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: callbackUrl.toString() },
     })
     return { error: error ? new Error(error.message) : null }
   }
 
   const signOut = async () => {
     await supabase.auth.signOut()
+    clearOnboardingCourt()
     setProfile(null)
   }
 

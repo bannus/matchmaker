@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
+import { JoinPage } from './pages/JoinPage'
 import { ProfileSetup } from './pages/ProfileSetupPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { AuthCallback } from './components/auth/AuthCallback'
@@ -13,6 +14,7 @@ import { NotificationsPage } from './pages/NotificationsPage'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AdminCourtsPage } from './pages/AdminCourtsPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
+import { CourtFlyerPage } from './pages/CourtFlyerPage'
 
 export default function App() {
   return (
@@ -21,6 +23,7 @@ export default function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/join" element={<JoinPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/profile/setup" element={<ProfileSetup />} />
 
@@ -34,6 +37,7 @@ export default function App() {
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/courts" element={<AdminCourtsPage />} />
+            <Route path="/admin/courts/flyer/:courtGroupId" element={<CourtFlyerPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
           </Route>
 
