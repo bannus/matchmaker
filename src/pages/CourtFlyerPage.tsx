@@ -11,11 +11,9 @@ export function CourtFlyerPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // QR code points to the stable Supabase Edge Function redirect URL.
-  // This survives domain changes — just update APP_URL in edge function secrets.
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-  const qrUrl = `${supabaseUrl}/functions/v1/court-redirect?court=${courtGroupId}`
-  const fallbackUrl = `${window.location.origin}/join?court=${courtGroupId}`
+  const appUrl = (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, '') ?? window.location.origin
+  const qrUrl = `${appUrl}/join?court=${courtGroupId}`
+  const fallbackUrl = qrUrl
 
   useEffect(() => {
     if (!courtGroupId) return

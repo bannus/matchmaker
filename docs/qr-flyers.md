@@ -18,10 +18,10 @@ This removes friction — players don't have to find and select their court manu
 QR Code (printed flyer)
   │
   ▼
-Supabase Edge Function (stable URL — never changes)
-  │  302 redirect
+https://your-app-domain.com/join?court=<court_group_id>
+  │  public landing
   ▼
-/join?court=<court_group_id>  (JoinPage — public landing)
+/join?court=<court_group_id>  (JoinPage)
   │  stores court in localStorage + navigates to login
   ▼
 /login?court=<court_group_id>  (LoginPage — passes court through auth)
@@ -37,22 +37,6 @@ Supabase Edge Function (stable URL — never changes)
 ```
 
 ## Key Components
-
-### Edge Function: `supabase/functions/court-redirect/index.ts`
-
-The QR code encodes a **stable Supabase project URL** that never changes, even if the app domain changes:
-
-```
-https://<project-ref>.supabase.co/functions/v1/court-redirect?court=<court_group_id>
-```
-
-The edge function:
-- Validates the `court` param is a UUID
-- Verifies the court group exists in the database
-- 302-redirects to `{APP_URL}/join?court=<court_group_id>`
-- Falls back to `/join` (no court context) if the court is invalid or deleted
-
-The redirect target is configured via the `APP_URL` secret. **Changing your app domain only requires updating this one secret — no reprinting flyers.**
 
 ### localStorage: `src/utils/onboardingCourt.ts`
 
@@ -84,43 +68,37 @@ Admin-only page at `/admin/courts/flyer/:courtGroupId`. Renders a print-optimize
 - Call-to-action text
 - Human-readable URL as text fallback
 
+The QR code points directly at your public app domain:
+
+```
+https://your-app-domain.com/join?court=<court_group_id>
+```
+
+`CourtFlyerPage` uses `VITE_APP_URL` when provided, and falls back to `window.location.origin` otherwise.
+
 Click "Print Flyer" or use Ctrl+P. The page has `print:` styles that hide the nav bar and controls.
 
 ## Deployment
 
-### 1. Deploy the edge function
+### 1. Set the public app URL
 
 ```bash
-supabase functions deploy court-redirect
+VITE_APP_URL=https://your-app-domain.com
 ```
 
-### 2. Set the app URL secret
-
-```bash
-supabase secrets set APP_URL=https://your-domain.com
-```
-
-### 3. Generate and print flyers
+### 2. Generate and print flyers
 
 1. Log in as admin
 2. Go to **Admin → Manage Courts**
 3. Click **"QR Flyer"** on any court group
 4. Click **"Print Flyer"** (or Ctrl+P)
 
-### Changing your domain later
-
-```bash
-supabase secrets set APP_URL=https://new-domain.com
-```
-
-All existing QR codes will redirect to the new domain. No reprinting needed.
-
 ## Edge Cases
 
 | Scenario | Behavior |
 |---|---|
 | Invalid/non-UUID `court` param | JoinPage shows generic "outdated link" message |
-| Deleted court group | Edge function redirects to `/join` (no court context) |
+| Deleted court group | JoinPage shows generic "outdated link" message |
 | Stale localStorage (>1 hour) | Automatically discarded, no pre-selection |
 | Existing logged-in user scans QR | Redirected to `/dashboard` |
 | Magic link opened in different browser | Court param in the callback URL ensures it still works |
@@ -128,13 +106,13 @@ All existing QR codes will redirect to the new domain. No reprinting needed.
 
 ## Local Development
 
-The edge function uses `APP_URL` env var, defaulting to `http://localhost:5173`. During local dev, QR codes in the flyer will point to:
+During local dev, if `VITE_APP_URL` is unset, QR codes in the flyer point to:
 
 ```
-http://127.0.0.1:54321/functions/v1/court-redirect?court=<id>
+http://localhost:5173/join?court=<id>
 ```
 
-This redirects to the local Vite dev server. To test the full flow locally:
+To test the full flow locally:
 
 1. Ensure local Supabase is running (`npm run db:start`)
 2. Start the dev server (`npm run dev`)
@@ -145,7 +123,6 @@ This redirects to the local Vite dev server. To test the full flow locally:
 
 | File | Purpose |
 |---|---|
-| `supabase/functions/court-redirect/index.ts` | Edge function — stable QR redirect |
 | `src/pages/JoinPage.tsx` | Public landing page for QR scans |
 | `src/pages/CourtFlyerPage.tsx` | Printable flyer with QR code |
 | `src/utils/onboardingCourt.ts` | localStorage helpers (store/get/clear/validate) |
