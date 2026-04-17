@@ -287,11 +287,9 @@ describe('admin: user management', () => {
 
 describe('admin: matches visibility', () => {
   let adminClient: SupabaseClient
-  let playerClient: SupabaseClient
 
   beforeAll(async () => {
     adminClient = await createUserClient('admin@localhost', 'password123')
-    playerClient = await createUserClient('player2@localhost', 'password123')
   })
 
   afterEach(async () => {

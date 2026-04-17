@@ -7,7 +7,7 @@ const POLL_INTERVAL_MS = 15_000
 export function useNotificationCount() {
   const { user } = useAuth()
   const [unreadCount, setUnreadCount] = useState(0)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
 
   const fetchCount = useCallback(async () => {
     if (!user) return
