@@ -11,7 +11,11 @@ export function CourtFlyerPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const joinUrl = `${window.location.origin}/join?court=${courtGroupId}`
+  // QR code points to the stable Supabase Edge Function redirect URL.
+  // This survives domain changes — just update APP_URL in edge function secrets.
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+  const qrUrl = `${supabaseUrl}/functions/v1/court-redirect?court=${courtGroupId}`
+  const fallbackUrl = `${window.location.origin}/join?court=${courtGroupId}`
 
   useEffect(() => {
     if (!courtGroupId) return
@@ -99,7 +103,7 @@ export function CourtFlyerPage() {
           <div className="flex justify-center mb-6">
             <div className="bg-white p-4 rounded-xl border-2 border-gray-200">
               <QRCodeSVG
-                value={joinUrl}
+                value={qrUrl}
                 size={200}
                 level="M"
                 marginSize={2}
@@ -115,9 +119,9 @@ export function CourtFlyerPage() {
             Get matched with players at your skill level — it's free!
           </p>
 
-          {/* Fallback URL */}
+          {/* Fallback URL — show the human-readable app URL, not the edge function URL */}
           <div className="border-t border-gray-200 pt-4">
-            <p className="text-xs text-gray-400 break-all">{joinUrl}</p>
+            <p className="text-xs text-gray-400 break-all">{fallbackUrl}</p>
           </div>
         </div>
       </div>
