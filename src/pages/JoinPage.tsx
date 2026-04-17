@@ -20,6 +20,8 @@ export function JoinPage() {
   useEffect(() => {
     if (!validCourtId) return
 
+    let cancelled = false
+
     storeOnboardingCourt(validCourtId)
 
     supabase
@@ -27,7 +29,16 @@ export function JoinPage() {
       .select('name')
       .eq('id', validCourtId)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (cancelled) return
+
+        if (error) {
+          console.error('Failed to load court group for join page', error)
+          setInvalidCourt(true)
+          setLoading(false)
+          return
+        }
+
         if (data) {
           setCourtName(data.name)
         } else {
@@ -35,6 +46,10 @@ export function JoinPage() {
         }
         setLoading(false)
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [validCourtId])
 
   // Redirect logged-in users

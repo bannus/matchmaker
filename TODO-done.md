@@ -1,5 +1,14 @@
 # Matchmaker — Completed TODOs
 
+## Deployment
+
+- [x] Create a Supabase cloud project and run the SQL migration (April 2026)
+- [x] Configure Google OAuth in Supabase dashboard (April 2026)
+- [x] Update `.env` with production Supabase URL and anon key (April 2026)
+- [x] Deploy to Vercel/Netlify (`npm run build` → deploy `dist/`) (April 2026)
+- [x] Set yourself as admin: `UPDATE profiles SET is_admin = true WHERE id = 'your-user-id'` (April 2026)
+- [x] Add your 4 local courts via the admin panel (April 2026)
+
 ## Bugs Fixed
 
 - [x] **Decline match should cancel the match** (April 2026)

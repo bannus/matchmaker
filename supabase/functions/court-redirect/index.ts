@@ -28,17 +28,30 @@ Deno.serve(async (req: Request) => {
     return Response.redirect(`${appUrl}/join`, 302);
   }
 
-  // Verify the court group exists (optional — could skip for speed)
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  const { data } = await supabase
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("Missing required Supabase environment variables");
+    return new Response("Server configuration error", {
+      status: 500,
+      headers: CORS_HEADERS,
+    });
+  }
+
+  // Verify the court group exists before redirecting with court context.
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  const { data, error } = await supabase
     .from("court_groups")
     .select("id")
     .eq("id", courtGroupId)
     .single();
+
+  if (error) {
+    console.error("Failed to verify court group in redirect function", error);
+    return Response.redirect(`${appUrl}/join?court=${courtGroupId}`, 302);
+  }
 
   if (!data) {
     // Court doesn't exist — redirect to join page without court context

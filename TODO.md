@@ -2,13 +2,7 @@
 
 ## Deployment (go live)
 
-1. [ ] Create a Supabase cloud project and run the SQL migration
-2. [ ] Configure Google OAuth in Supabase dashboard
-3. [ ] Update `.env` with production Supabase URL and anon key
-4. [ ] Deploy to Vercel/Netlify (`npm run build` → deploy `dist/`)
-5. [ ] Set yourself as admin: `UPDATE profiles SET is_admin = true WHERE id = 'your-user-id'`
-6. [ ] Add your 4 local courts via the admin panel
-7. [ ] Print flyers with QR codes — use Admin → Manage Courts → "QR Flyer" button per court group
+1. [ ] Print flyers with QR codes — use Admin → Manage Courts → "QR Flyer" button per court group
 
 ## Bugs / Edge Cases
 
