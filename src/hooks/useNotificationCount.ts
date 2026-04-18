@@ -10,7 +10,10 @@ export function useNotificationCount() {
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
 
   const fetchCount = useCallback(async () => {
-    if (!user) return
+    if (!user) {
+      setUnreadCount(0)
+      return
+    }
     const { count } = await supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
@@ -20,7 +23,11 @@ export function useNotificationCount() {
   }, [user])
 
   useEffect(() => {
-    fetchCount()
+    if (!user?.id) return
+
+    const initialFetchTimeout = window.setTimeout(() => {
+      void fetchCount()
+    }, 0)
 
     // Subscribe to real-time notification inserts
     const channel = supabase
@@ -43,10 +50,11 @@ export function useNotificationCount() {
     intervalRef.current = setInterval(fetchCount, POLL_INTERVAL_MS)
 
     return () => {
+      clearTimeout(initialFetchTimeout)
       supabase.removeChannel(channel)
       clearInterval(intervalRef.current)
     }
   }, [fetchCount, user?.id])
 
-  return { unreadCount, refreshCount: fetchCount }
+  return { unreadCount: user ? unreadCount : 0, refreshCount: fetchCount }
 }

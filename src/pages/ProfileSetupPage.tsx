@@ -17,9 +17,13 @@ interface CourtGroupOption {
 export function ProfileSetup() {
   const { user, refreshProfile } = useAuth()
   const navigate = useNavigate()
+  const initialDisplayName =
+    typeof user?.user_metadata?.full_name === 'string'
+      ? user.user_metadata.full_name
+      : ''
 
   const [step, setStep] = useState<Step>('name')
-  const [displayName, setDisplayName] = useState('')
+  const [displayNameOverride, setDisplayNameOverride] = useState<string | null>(null)
   const [ntrpRating, setNtrpRating] = useState<number | null>(null)
   const [matchType, setMatchType] = useState<MatchTypePreference>('both')
   const [courtGroups, setCourtGroups] = useState<CourtGroupOption[]>([])
@@ -27,6 +31,7 @@ export function ProfileSetup() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [expandedRating, setExpandedRating] = useState<number | null>(null)
+  const displayName = displayNameOverride ?? initialDisplayName
 
   useEffect(() => {
     supabase
@@ -45,13 +50,6 @@ export function ProfileSetup() {
       })
   }, [])
 
-  // Pre-fill name from Google profile if available
-  useEffect(() => {
-    if (user?.user_metadata?.full_name) {
-      setDisplayName(user.user_metadata.full_name)
-    }
-  }, [user])
-
   const handleComplete = async () => {
     if (!user) return
     setSaving(true)
@@ -65,8 +63,7 @@ export function ProfileSetup() {
       court_group_id: selectedCourtGroup,
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await supabase.from('profiles').upsert(profileData as any)
+    const { error } = await supabase.from('profiles').upsert(profileData)
 
     if (error) {
       setSaveError('Something went wrong saving your profile. Please try again.')
@@ -151,7 +148,7 @@ export function ProfileSetup() {
                   id="display-name"
                   type="text"
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(e) => setDisplayNameOverride(e.target.value)}
                   placeholder="Your name or nickname"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
                   autoFocus

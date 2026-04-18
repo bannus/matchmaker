@@ -18,7 +18,6 @@ export function AdminDashboardPage() {
 
   useEffect(() => {
     if (!profile?.is_admin) {
-      setLoading(false)
       return
     }
 

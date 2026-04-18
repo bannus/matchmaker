@@ -30,157 +30,173 @@ export function MatchesPage() {
   const [courtCounts, setCourtCounts] = useState<Record<string, number>>({})
   const [crowding, setCrowding] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const courtGroupId = profile?.court_group_id ?? null
 
-  const fetchMatches = useCallback(async () => {
-    if (!user) return
+  const fetchCrowding = useCallback(async (rows: MatchRow[]) => {
+    if (!courtGroupId) return
 
-    // Get all matches for this user
-    const { data: playerRows } = await supabase
-      .from('match_players')
-      .select('match_id, response')
-      .eq('player_id', user.id)
-
-    if (!playerRows || playerRows.length === 0) {
-      setMatches([])
-      return
-    }
-
-    const matchIds = playerRows.map((r) => r.match_id)
-    const responseMap = Object.fromEntries(
-      playerRows.map((r) => [r.match_id, r.response])
-    )
-
-    // Fetch match details
-    const { data: matchData } = await supabase
-      .from('matches')
-      .select('*')
-      .in('id', matchIds)
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true })
-
-    if (!matchData) {
-      setMatches([])
-      return
-    }
-
-    // Fetch all players in these matches
-    const { data: allPlayers } = await supabase
-      .from('match_players')
-      .select('match_id, player_id')
-      .in('match_id', matchIds)
-
-    // Get unique opponent IDs
-    const opponentIds = [
-      ...new Set(
-        (allPlayers ?? [])
-          .filter((p) => p.player_id !== user.id)
-          .map((p) => p.player_id)
-      ),
-    ]
-
-    // Fetch opponent profiles
-    let profileMap: Record<string, { display_name: string; ntrp_rating: number | null }> = {}
-    if (opponentIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, ntrp_rating')
-        .in('id', opponentIds)
-      for (const p of profiles ?? []) {
-        profileMap[p.id] = {
-          display_name: p.display_name,
-          ntrp_rating: p.ntrp_rating,
-        }
-      }
-    }
-
-    // Fetch opponent availability notes for each match
-    const { data: availRows } = await supabase
-      .from('availability')
-      .select('match_id, player_id, notes')
-      .in('match_id', matchIds)
-      .not('notes', 'is', null)
-
-    const opponentNotesMap: Record<string, string[]> = {}
-    for (const a of availRows ?? []) {
-      if (a.player_id === user.id) continue
-      if (!a.notes) continue
-      if (!opponentNotesMap[a.match_id]) opponentNotesMap[a.match_id] = []
-      opponentNotesMap[a.match_id].push(a.notes)
-    }
-
-    // Assemble rows
-    const rows: MatchRow[] = matchData.map((m) => {
-      const opps = (allPlayers ?? [])
-        .filter((p) => p.match_id === m.id && p.player_id !== user.id)
-        .map((p) => profileMap[p.player_id] ?? { display_name: 'Unknown', ntrp_rating: null })
-
-      return {
-        id: m.id,
-        date: m.date,
-        start_time: m.start_time,
-        end_time: m.end_time,
-        match_type: m.match_type,
-        status: m.status,
-        court_group_id: m.court_group_id,
-        my_response: responseMap[m.id] ?? 'pending',
-        opponents: opps,
-        opponent_notes: opponentNotesMap[m.id] ?? [],
-      }
-    })
-
-    setMatches(rows)
-    await fetchCrowding(rows)
-  }, [user])
-
-  // Court crowding: count overlapping matches per court group time slot
-  const fetchCrowding = async (rows: MatchRow[]) => {
-    if (!profile?.court_group_id) return
-
-    // Get court count for the group
     const { count } = await supabase
       .from('courts')
       .select('id', { count: 'exact', head: true })
-      .eq('court_group_id', profile.court_group_id)
+      .eq('court_group_id', courtGroupId)
 
     const totalCourts = count ?? 0
-    setCourtCounts((prev) => ({ ...prev, [profile.court_group_id!]: totalCourts }))
+    setCourtCounts((prev) => ({ ...prev, [courtGroupId]: totalCourts }))
 
     const crowdMap: Record<string, number> = {}
 
-    for (const m of rows) {
-      if (m.status !== 'confirmed') continue
-      // Count overlapping confirmed matches in same court group
+    for (const match of rows) {
+      if (match.status !== 'confirmed') continue
+
       const { count: overlap } = await supabase
         .from('matches')
         .select('id', { count: 'exact', head: true })
-        .eq('court_group_id', m.court_group_id)
+        .eq('court_group_id', match.court_group_id)
         .eq('status', 'confirmed')
-        .eq('date', m.date)
-        .lt('start_time', m.end_time)
-        .gt('end_time', m.start_time)
+        .eq('date', match.date)
+        .lt('start_time', match.end_time)
+        .gt('end_time', match.start_time)
 
-      crowdMap[m.id] = overlap ?? 0
+      crowdMap[match.id] = overlap ?? 0
     }
 
     setCrowding(crowdMap)
-  }
+  }, [courtGroupId])
+
+  const fetchMatches = useCallback(async () => {
+    setLoading(true)
+
+    if (!user) {
+      setMatches([])
+      setCrowding({})
+      setLoading(false)
+      return
+    }
+
+    try {
+      const { data: playerRows } = await supabase
+        .from('match_players')
+        .select('match_id, response')
+        .eq('player_id', user.id)
+
+      if (!playerRows || playerRows.length === 0) {
+        setMatches([])
+        setCrowding({})
+        return
+      }
+
+      const matchIds = playerRows.map((r) => r.match_id)
+      const responseMap = Object.fromEntries(
+        playerRows.map((r) => [r.match_id, r.response])
+      )
+
+      const { data: matchData } = await supabase
+        .from('matches')
+        .select('*')
+        .in('id', matchIds)
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true })
+
+      if (!matchData) {
+        setMatches([])
+        setCrowding({})
+        return
+      }
+
+      const { data: allPlayers } = await supabase
+        .from('match_players')
+        .select('match_id, player_id')
+        .in('match_id', matchIds)
+
+      const opponentIds = [
+        ...new Set(
+          (allPlayers ?? [])
+            .filter((p) => p.player_id !== user.id)
+            .map((p) => p.player_id)
+        ),
+      ]
+
+      const profileMap: Record<string, { display_name: string; ntrp_rating: number | null }> = {}
+      if (opponentIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name, ntrp_rating')
+          .in('id', opponentIds)
+        for (const p of profiles ?? []) {
+          profileMap[p.id] = {
+            display_name: p.display_name,
+            ntrp_rating: p.ntrp_rating,
+          }
+        }
+      }
+
+      const { data: availRows } = await supabase
+        .from('availability')
+        .select('match_id, player_id, notes')
+        .in('match_id', matchIds)
+        .not('notes', 'is', null)
+
+      const opponentNotesMap: Record<string, string[]> = {}
+      for (const availability of availRows ?? []) {
+        if (availability.player_id === user.id) continue
+        if (!availability.notes) continue
+        if (!opponentNotesMap[availability.match_id]) {
+          opponentNotesMap[availability.match_id] = []
+        }
+        opponentNotesMap[availability.match_id].push(availability.notes)
+      }
+
+      const rows: MatchRow[] = matchData.map((match) => {
+        const opponents = (allPlayers ?? [])
+          .filter((player) => player.match_id === match.id && player.player_id !== user.id)
+          .map(
+            (player) =>
+              profileMap[player.player_id] ?? {
+                display_name: 'Unknown',
+                ntrp_rating: null,
+              }
+          )
+
+        return {
+          id: match.id,
+          date: match.date,
+          start_time: match.start_time,
+          end_time: match.end_time,
+          match_type: match.match_type,
+          status: match.status,
+          court_group_id: match.court_group_id,
+          my_response: responseMap[match.id] ?? 'pending',
+          opponents,
+          opponent_notes: opponentNotesMap[match.id] ?? [],
+        }
+      })
+
+      setMatches(rows)
+      await fetchCrowding(rows)
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchCrowding, user])
 
   useEffect(() => {
-    setLoading(true)
-    fetchMatches().finally(() => setLoading(false))
+    const initialFetchTimeout = window.setTimeout(() => {
+      void fetchMatches()
+    }, 0)
+
+    return () => clearTimeout(initialFetchTimeout)
   }, [fetchMatches])
 
   const respond = async (matchId: string, response: 'accepted' | 'declined') => {
     const { error } = await supabase.rpc('respond_to_match', {
       p_match_id: matchId,
       p_response: response,
-    } as any)
+    })
 
     if (error) {
       console.error('Failed to respond to match:', error.message)
     }
 
-    fetchMatches()
+    await fetchMatches()
   }
 
   const today = new Date().toISOString().split('T')[0]

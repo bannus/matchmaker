@@ -18,6 +18,28 @@ interface BrowseSlot {
   ntrp_rating: number | null
 }
 
+interface ProfileSummary {
+  ntrp_rating: number | null
+}
+
+interface BrowseSlotQueryRow {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  match_type: MatchTypePreference
+  notes: string | null
+  profiles: ProfileSummary | ProfileSummary[] | null
+}
+
+function getBrowseSlotProfile(profiles: BrowseSlotQueryRow['profiles']) {
+  if (Array.isArray(profiles)) {
+    return profiles[0] ?? null
+  }
+
+  return profiles
+}
+
 export function AvailabilityPage() {
   const { user, profile } = useAuth()
   const [tab, setTab] = useState<Tab>('mine')
@@ -49,22 +71,27 @@ export function AvailabilityPage() {
       .neq('player_id', user.id)
       .gte('date', today)
       .order('date', { ascending: true })
-      .order('start_time', { ascending: true }) as any
+      .order('start_time', { ascending: true })
 
-    const mapped: BrowseSlot[] = (data ?? []).map((row: any) => ({
-      id: row.id,
-      date: row.date,
-      start_time: row.start_time,
-      end_time: row.end_time,
-      match_type: row.match_type,
-      notes: row.notes,
-      ntrp_rating: row.profiles?.ntrp_rating ?? null,
-    }))
+    const rows = (data ?? []) as BrowseSlotQueryRow[]
+
+    const mapped: BrowseSlot[] = rows.map((row) => {
+      const playerProfile = getBrowseSlotProfile(row.profiles)
+
+      return {
+        id: row.id,
+        date: row.date,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        match_type: row.match_type,
+        notes: row.notes,
+        ntrp_rating: playerProfile?.ntrp_rating ?? null,
+      }
+    })
     setBrowseSlots(mapped)
   }, [user, profile])
 
   useEffect(() => {
-    setLoading(true)
     const load = tab === 'mine' ? fetchMySlots : fetchBrowseSlots
     load().finally(() => setLoading(false))
   }, [tab, fetchMySlots, fetchBrowseSlots])
@@ -114,7 +141,12 @@ export function AvailabilityPage() {
         ] as [Tab, string][]).map(([key, label]) => (
           <button
             key={key}
-            onClick={() => setTab(key)}
+            onClick={() => {
+              if (key !== tab) {
+                setLoading(true)
+                setTab(key)
+              }
+            }}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === key
                 ? 'border-green-600 text-green-600'

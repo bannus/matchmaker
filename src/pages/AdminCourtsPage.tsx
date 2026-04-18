@@ -376,7 +376,11 @@ export function AdminCourtsPage() {
   }, [])
 
   useEffect(() => {
-    fetchData()
+    const initialFetchTimeout = window.setTimeout(() => {
+      void fetchData()
+    }, 0)
+
+    return () => clearTimeout(initialFetchTimeout)
   }, [fetchData])
 
   // --- Access check ---
@@ -412,13 +416,12 @@ export function AdminCourtsPage() {
         })
         .eq('id', editingGroupId)
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await supabase.from('court_groups').insert({
         name: data.name.trim(),
         description: data.description.trim() || null,
         timezone: data.timezone.trim(),
         created_by: user.id,
-      } as any)
+      })
     }
 
     setSaving(false)
@@ -454,7 +457,6 @@ export function AdminCourtsPage() {
         })
         .eq('id', editingCourtId)
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await supabase.from('courts').insert({
         court_group_id: courtGroupId,
         name: data.name.trim(),
@@ -462,7 +464,7 @@ export function AdminCourtsPage() {
         surface_type: data.surface_type.trim() || null,
         is_lit: data.is_lit,
         notes: data.notes.trim() || null,
-      } as any)
+      })
     }
 
     setSaving(false)
@@ -477,7 +479,6 @@ export function AdminCourtsPage() {
   ) => {
     setSaving(true)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await supabase.from('courts').insert(
       courts.map((c) => ({
         court_group_id: courtGroupId,
@@ -486,7 +487,7 @@ export function AdminCourtsPage() {
         surface_type: c.surface_type.trim() || null,
         is_lit: c.is_lit,
         notes: c.notes.trim() || null,
-      })) as any
+      }))
     )
 
     setSaving(false)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { getNtrpLabel } from '../utils/ntrp'
@@ -10,22 +10,24 @@ export function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    if (!currentProfile?.is_admin) {
-      setLoading(false)
-      return
-    }
-    fetchUsers()
-  }, [currentProfile])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     const { data } = await supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: false })
     setUsers((data as Profile[]) || [])
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!currentProfile?.is_admin) return
+
+    const initialFetchTimeout = window.setTimeout(() => {
+      void fetchUsers()
+    }, 0)
+
+    return () => clearTimeout(initialFetchTimeout)
+  }, [currentProfile, fetchUsers])
 
   const toggleBan = async (userId: string, currentlyBanned: boolean) => {
     const action = currentlyBanned ? 'unban' : 'ban'

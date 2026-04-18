@@ -190,6 +190,7 @@ Google OAuth requires real credentials. It will not work in local dev unless:
 - `GOOGLE_CLIENT_ID` is set
 - `GOOGLE_CLIENT_SECRET` is set
 - your Google OAuth app allows the exact Supabase/local redirect flow being used
+- your Google OAuth app includes `http://localhost:54321/auth/v1/callback` in Authorized redirect URIs
 
 ## Known Gotchas
 

@@ -2,40 +2,42 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { ntrpLevels, getNtrpLabel } from '../utils/ntrp'
-import type { MatchTypePreference } from '../types'
+import type { MatchTypePreference, Profile } from '../types'
 
 interface CourtGroupOption {
   id: string
   name: string
 }
 
+interface ProfileFormState {
+  displayName: string
+  bio: string
+  ntrpRating: number | null
+  matchType: MatchTypePreference
+  notificationEmail: boolean
+  notificationInApp: boolean
+  courtGroupId: string | null
+}
+
+function getProfileFormState(profile: Profile | null): ProfileFormState {
+  return {
+    displayName: profile?.display_name ?? '',
+    bio: profile?.bio ?? '',
+    ntrpRating: profile?.ntrp_rating ?? null,
+    matchType: profile?.preferred_match_type ?? 'both',
+    notificationEmail: profile?.notification_email ?? true,
+    notificationInApp: profile?.notification_in_app ?? true,
+    courtGroupId: profile?.court_group_id ?? null,
+  }
+}
+
 export function ProfilePage() {
   const { profile, user, refreshProfile } = useAuth()
 
-  const [displayName, setDisplayName] = useState('')
-  const [bio, setBio] = useState('')
-  const [ntrpRating, setNtrpRating] = useState<number | null>(null)
-  const [matchType, setMatchType] = useState<MatchTypePreference>('both')
-  const [notificationEmail, setNotificationEmail] = useState(true)
-  const [notificationInApp, setNotificationInApp] = useState(true)
-  const [courtGroupId, setCourtGroupId] = useState<string | null>(null)
-
   const [courtGroups, setCourtGroups] = useState<CourtGroupOption[]>([])
+  const [draft, setDraft] = useState<ProfileFormState | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-
-  // Populate form from profile
-  useEffect(() => {
-    if (profile) {
-      setDisplayName(profile.display_name ?? '')
-      setBio(profile.bio ?? '')
-      setNtrpRating(profile.ntrp_rating)
-      setMatchType(profile.preferred_match_type ?? 'both')
-      setNotificationEmail(profile.notification_email)
-      setNotificationInApp(profile.notification_in_app)
-      setCourtGroupId(profile.court_group_id)
-    }
-  }, [profile])
 
   // Fetch court groups for dropdown
   useEffect(() => {
@@ -48,6 +50,15 @@ export function ProfilePage() {
       })
   }, [])
 
+  const form = draft ?? getProfileFormState(profile)
+
+  const updateForm = (updates: Partial<ProfileFormState>) => {
+    setDraft((current) => ({
+      ...(current ?? getProfileFormState(profile)),
+      ...updates,
+    }))
+  }
+
   const handleSave = async () => {
     if (!user) return
     setSaving(true)
@@ -55,20 +66,20 @@ export function ProfilePage() {
 
     const updates = {
       id: user.id,
-      display_name: displayName.trim(),
-      bio: bio.trim() || null,
-      ntrp_rating: ntrpRating,
-      preferred_match_type: matchType,
-      notification_email: notificationEmail,
-      notification_in_app: notificationInApp,
-      court_group_id: courtGroupId,
+      display_name: form.displayName.trim(),
+      bio: form.bio.trim() || null,
+      ntrp_rating: form.ntrpRating,
+      preferred_match_type: form.matchType,
+      notification_email: form.notificationEmail,
+      notification_in_app: form.notificationInApp,
+      court_group_id: form.courtGroupId,
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await supabase.from('profiles').upsert(updates as any)
+    const { error } = await supabase.from('profiles').upsert(updates)
 
     if (!error) {
       await refreshProfile()
+      setDraft(null)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     }
@@ -102,8 +113,8 @@ export function ProfilePage() {
               <input
                 id="display-name"
                 type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                value={form.displayName}
+                onChange={(e) => updateForm({ displayName: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
                 placeholder="Your name or nickname"
               />
@@ -117,8 +128,8 @@ export function ProfilePage() {
               </label>
               <textarea
                 id="bio"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                value={form.bio}
+                onChange={(e) => updateForm({ bio: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm resize-none"
                 placeholder="Tell other players about yourself…"
@@ -140,16 +151,16 @@ export function ProfilePage() {
               >
                 NTRP Rating
               </label>
-              <select
-                id="ntrp-rating"
-                value={ntrpRating ?? ''}
-                onChange={(e) =>
-                  setNtrpRating(
-                    e.target.value ? parseFloat(e.target.value) : null
-                  )
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm bg-white"
-              >
+                <select
+                  id="ntrp-rating"
+                  value={form.ntrpRating ?? ''}
+                  onChange={(e) =>
+                    updateForm({
+                      ntrpRating: e.target.value ? parseFloat(e.target.value) : null,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm bg-white"
+                >
                 <option value="">Not set</option>
                 {ntrpLevels.map((level) => (
                   <option key={level.rating} value={level.rating}>
@@ -173,9 +184,9 @@ export function ProfilePage() {
                 ).map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => setMatchType(option.value)}
+                    onClick={() => updateForm({ matchType: option.value })}
                     className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-colors ${
-                      matchType === option.value
+                      form.matchType === option.value
                         ? 'border-green-600 bg-green-50 text-green-700'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
@@ -198,14 +209,14 @@ export function ProfilePage() {
             >
               Court Group
             </label>
-            <select
-              id="court-group"
-              value={courtGroupId ?? ''}
-              onChange={(e) =>
-                setCourtGroupId(e.target.value || null)
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm bg-white"
-            >
+              <select
+                id="court-group"
+                value={form.courtGroupId ?? ''}
+                onChange={(e) =>
+                  updateForm({ courtGroupId: e.target.value || null })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm bg-white"
+              >
               <option value="">None selected</option>
               {courtGroups.map((g) => (
                 <option key={g.id} value={g.id}>
@@ -223,8 +234,8 @@ export function ProfilePage() {
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
-                checked={notificationEmail}
-                onChange={(e) => setNotificationEmail(e.target.checked)}
+                checked={form.notificationEmail}
+                onChange={(e) => updateForm({ notificationEmail: e.target.checked })}
                 className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
               />
               <div>
@@ -239,8 +250,8 @@ export function ProfilePage() {
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
-                checked={notificationInApp}
-                onChange={(e) => setNotificationInApp(e.target.checked)}
+                checked={form.notificationInApp}
+                onChange={(e) => updateForm({ notificationInApp: e.target.checked })}
                 className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
               />
               <div>
@@ -259,7 +270,7 @@ export function ProfilePage() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleSave}
-            disabled={saving || !displayName.trim()}
+            disabled={saving || !form.displayName.trim()}
             className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
           >
             {saving ? 'Saving…' : 'Save Changes'}

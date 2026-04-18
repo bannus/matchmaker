@@ -23,7 +23,11 @@ export function NotificationsPage() {
   }, [user])
 
   useEffect(() => {
-    fetchNotifications()
+    const initialFetchTimeout = window.setTimeout(() => {
+      void fetchNotifications()
+    }, 0)
+
+    return () => clearTimeout(initialFetchTimeout)
   }, [fetchNotifications])
 
   const markAsRead = async (id: string) => {

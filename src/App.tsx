@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './hooks/useAuth'
+import { AuthProvider } from './hooks/AuthProvider'
 import { LoginPage } from './pages/LoginPage'
 import { JoinPage } from './pages/JoinPage'
 import { ProfileSetup } from './pages/ProfileSetupPage'
