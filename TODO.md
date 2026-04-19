@@ -6,6 +6,24 @@
 
 ## Bugs / Edge Cases
 
+- [ ] **[P1]** Declining a match leaves both players' availability stuck as matched
+  - `run_matchmaking()` marks the source availability rows as `status = 'matched'` and stores `match_id`
+  - `respond_to_match()` cancels the match on decline but never reopens those availability rows
+  - Result: one decline burns both players' slots and they cannot be rematched for that same time window
+  - Fix: when a proposed match is declined/cancelled, reset linked availability rows back to `open` and clear `match_id` (or replace with a more explicit lifecycle)
+  - Affected: `20260415000002_availability_match_link.sql`, `20260416000002_respond_to_match_rpc.sql`
+- [ ] **[P1]** Missing notifications when a match is confirmed or declined
+  - The schema and UI support `match_confirmed`, `match_cancelled`, and `match_declined`
+  - But the backend only inserts `match_proposed` notifications during `run_matchmaking()`
+  - `respond_to_match()` changes match status without notifying the other participant(s)
+  - Fix: emit response-side notifications from the RPC when a player accepts or declines
+  - Affected: `20260413000001_initial_schema.sql`, `20260415000002_availability_match_link.sql`, `20260416000002_respond_to_match_rpc.sql`, `NotificationsPage.tsx`
+- [ ] **[P1]** Banned users can still post and appear in availability browse
+  - Matchmaking excludes banned players, but RLS still allows them to insert/update their own availability rows
+  - The browse query also shows open slots without filtering out banned players
+  - Result: banned users still show up in a core customer-facing flow even though they can never be matched
+  - Fix: block availability creation/updates for banned users and exclude banned players from browse queries
+  - Affected: `20260413000001_initial_schema.sql`, `20260415000002_availability_match_link.sql`, `AvailabilityPage.tsx`, `PostAvailabilityForm.tsx`
 - [ ] **[P2]** Notification badge goes stale after mark-as-read
   - `useNotificationCount` subscribes to realtime inserts and increments the count
   - But marking notifications as read in `NotificationsPage` never decrements the badge
@@ -17,7 +35,7 @@
   - Can cause state updates on unmounted components
   - Fix: add cleanup in the success branch before navigating away
   - Affected: `AuthCallback.tsx`
-- [ ] **[P2]** Matchmaking ignores singles/doubles preference
+- [ ] **[P1]** Matchmaking ignores singles/doubles preference
   - `run_matchmaking()` selects `player_pref` but never uses it in matching logic
   - All matches are hardcoded to `match_type = 'singles'`
   - Doubles support is half-built (schema supports it, logic doesn't)
@@ -26,7 +44,7 @@
   - `availability.match_id` column added in `20260415000002_availability_match_link.sql` is not in `src/types/database.ts`
   - Fix: regenerate types with `npx supabase gen types typescript`
   - Affected: `src/types/database.ts`
-- [ ] **[P3]** Hide calendar links for matches in 'awaiting opponent' state
+- [ ] **[P2]** Hide calendar links for matches in 'awaiting opponent' state
   - Currently the Upcoming section shows Google Cal / iCal buttons for matches where `status === 'proposed' && my_response === 'accepted'`
   - These should only appear once the match is `confirmed` (both players accepted)
   - In `MatchesPage.tsx`, the calendar buttons render when `key === 'upcoming'` — add a check for `m.status === 'confirmed'`
