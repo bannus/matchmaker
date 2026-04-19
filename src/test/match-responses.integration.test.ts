@@ -6,8 +6,35 @@ import {
   clearMatchData,
   ADMIN_ID,
   PLAYER_ID,
+  COURT_GROUP_ID,
 } from './helpers'
 import type { SupabaseClient } from '@supabase/supabase-js'
+
+// Insert an availability row already linked to the given match (mirrors what run_matchmaking()
+// does). Returns the availability id.
+async function insertLinkedAvailability(matchId: string, playerId: string): Promise<string> {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const date = tomorrow.toISOString().split('T')[0]
+
+  const { data, error } = await serviceClient
+    .from('availability')
+    .insert({
+      player_id: playerId,
+      court_group_id: COURT_GROUP_ID,
+      date,
+      start_time: '10:00',
+      end_time: '11:00',
+      match_type: 'singles',
+      status: 'matched',
+      match_id: matchId,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(`Failed to insert linked availability: ${error.message}`)
+  return data.id
+}
 
 // Uses the respond_to_match RPC for atomic match responses
 async function respondToMatch(
@@ -202,5 +229,71 @@ describe('match responses', () => {
 
     expect(error).not.toBeNull()
     expect(error!.message).toContain('no longer open')
+  })
+
+  it('declining reopens both players linked availability rows', async () => {
+    const matchId = await createProposedMatch()
+    const availA = await insertLinkedAvailability(matchId, ADMIN_ID)
+    const availB = await insertLinkedAvailability(matchId, PLAYER_ID)
+
+    await respondToMatch(playerClient, matchId, PLAYER_ID, 'declined')
+
+    const { data } = await serviceClient
+      .from('availability')
+      .select('id, status, match_id')
+      .in('id', [availA, availB])
+
+    expect(data).toHaveLength(2)
+    for (const row of data!) {
+      expect(row.status).toBe('open')
+      expect(row.match_id).toBeNull()
+    }
+  })
+
+  it('directly cancelling a match also reopens linked availability (covers future cancel paths)', async () => {
+    const matchId = await createProposedMatch()
+    const availA = await insertLinkedAvailability(matchId, ADMIN_ID)
+    const availB = await insertLinkedAvailability(matchId, PLAYER_ID)
+
+    // Simulate a user-initiated or admin cancel path that directly flips status.
+    const { error } = await serviceClient
+      .from('matches')
+      .update({ status: 'cancelled' })
+      .eq('id', matchId)
+    expect(error).toBeNull()
+
+    const { data } = await serviceClient
+      .from('availability')
+      .select('id, status, match_id')
+      .in('id', [availA, availB])
+
+    expect(data).toHaveLength(2)
+    for (const row of data!) {
+      expect(row.status).toBe('open')
+      expect(row.match_id).toBeNull()
+    }
+  })
+
+  it('cancellation does not resurrect availability rows the user has since taken down', async () => {
+    const matchId = await createProposedMatch()
+    const linked = await insertLinkedAvailability(matchId, ADMIN_ID)
+
+    // User already advanced this row past 'matched' (e.g. cancelled their own slot).
+    await serviceClient
+      .from('availability')
+      .update({ status: 'cancelled' })
+      .eq('id', linked)
+
+    await respondToMatch(playerClient, matchId, PLAYER_ID, 'declined')
+
+    const { data } = await serviceClient
+      .from('availability')
+      .select('status, match_id')
+      .eq('id', linked)
+      .single()
+
+    // Guard holds: row stays cancelled, match_id untouched.
+    expect(data!.status).toBe('cancelled')
+    expect(data!.match_id).toBe(matchId)
   })
 })

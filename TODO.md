@@ -6,12 +6,6 @@
 
 ## Bugs / Edge Cases
 
-- [ ] **[P1]** Declining a match leaves both players' availability stuck as matched
-  - `run_matchmaking()` marks the source availability rows as `status = 'matched'` and stores `match_id`
-  - `respond_to_match()` cancels the match on decline but never reopens those availability rows
-  - Result: one decline burns both players' slots and they cannot be rematched for that same time window
-  - Fix: when a proposed match is declined/cancelled, reset linked availability rows back to `open` and clear `match_id` (or replace with a more explicit lifecycle)
-  - Affected: `20260415000002_availability_match_link.sql`, `20260416000002_respond_to_match_rpc.sql`
 - [ ] **[P1]** Missing notifications when a match is confirmed or declined
   - The schema and UI support `match_confirmed`, `match_cancelled`, and `match_declined`
   - But the backend only inserts `match_proposed` notifications during `run_matchmaking()`

@@ -11,6 +11,13 @@
 
 ## Bugs Fixed
 
+- [x] **Availability stuck as matched after decline** (April 2026)
+  - `run_matchmaking()` marks the source availability rows as `status = 'matched'` and stores `match_id`
+  - `respond_to_match()` cancelled the match on decline but never reopened those availability rows
+  - Result: one decline burned both players' slots and they could not be rematched for that same time window
+  - Fixed in `20260418000001_reset_availability_on_match_cancel.sql` — trigger-based so future cancellation paths are covered too
+  - Affected: `20260415000002_availability_match_link.sql`, `20260416000002_respond_to_match_rpc.sql`
+
 - [x] **Decline match should cancel the match** (April 2026)
   - When a player declines a proposed match, the match status should change to `cancelled`
   - Root cause: missing UPDATE RLS policy on `matches` table — users couldn't change match status
