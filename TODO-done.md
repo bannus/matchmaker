@@ -11,6 +11,15 @@
 
 ## Bugs Fixed
 
+- [x] **Missing notifications when a match is confirmed or declined** (April 2026)
+  - The schema and UI support `match_confirmed`, `match_cancelled`, and `match_declined`
+  - But the backend only inserted `match_proposed` notifications during `run_matchmaking()`
+  - `respond_to_match()` changed match status without notifying the other participant(s)
+  - Fixed in `20260418000002_match_response_notifications.sql` — the RPC now inserts
+    `match_declined` notifications for other participants on decline, and `match_confirmed`
+    notifications when the final accept confirms the match
+  - Affected: `20260416000002_respond_to_match_rpc.sql`, `match-responses.integration.test.ts`
+
 - [x] **Availability stuck as matched after decline** (April 2026)
   - `run_matchmaking()` marks the source availability rows as `status = 'matched'` and stores `match_id`
   - `respond_to_match()` cancelled the match on decline but never reopened those availability rows

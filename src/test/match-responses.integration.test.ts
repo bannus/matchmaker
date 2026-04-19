@@ -274,6 +274,67 @@ describe('match responses', () => {
     }
   })
 
+  it('declining emits a match_declined notification to the other participant', async () => {
+    const matchId = await createProposedMatch()
+
+    await respondToMatch(playerClient, matchId, PLAYER_ID, 'declined')
+
+    const { data } = await serviceClient
+      .from('notifications')
+      .select('user_id, type, data')
+      .eq('type', 'match_declined')
+
+    expect(data).toHaveLength(1)
+    expect(data![0].user_id).toBe(ADMIN_ID)
+    expect((data![0].data as { match_id: string }).match_id).toBe(matchId)
+
+    // The decliner does not receive a notification about their own action
+    const { data: declinerNotifs } = await serviceClient
+      .from('notifications')
+      .select('id')
+      .eq('user_id', PLAYER_ID)
+      .eq('type', 'match_declined')
+    expect(declinerNotifs).toHaveLength(0)
+  })
+
+  it('final accept that confirms the match notifies the other participant', async () => {
+    const matchId = await createProposedMatch()
+
+    await respondToMatch(adminClient, matchId, ADMIN_ID, 'accepted')
+
+    // No confirmation notification yet — match still proposed
+    const { data: early } = await serviceClient
+      .from('notifications')
+      .select('id')
+      .eq('type', 'match_confirmed')
+    expect(early).toHaveLength(0)
+
+    await respondToMatch(playerClient, matchId, PLAYER_ID, 'accepted')
+
+    const { data } = await serviceClient
+      .from('notifications')
+      .select('user_id, type, data')
+      .eq('type', 'match_confirmed')
+
+    // Only the other participant (admin) is notified; the caller (player2) is not.
+    expect(data).toHaveLength(1)
+    expect(data![0].user_id).toBe(ADMIN_ID)
+    expect((data![0].data as { match_id: string }).match_id).toBe(matchId)
+  })
+
+  it('first accept (not yet confirmed) does not create a match_confirmed notification', async () => {
+    const matchId = await createProposedMatch()
+
+    await respondToMatch(adminClient, matchId, ADMIN_ID, 'accepted')
+
+    const { data } = await serviceClient
+      .from('notifications')
+      .select('id')
+      .eq('type', 'match_confirmed')
+
+    expect(data).toHaveLength(0)
+  })
+
   it('cancellation does not resurrect availability rows the user has since taken down', async () => {
     const matchId = await createProposedMatch()
     const linked = await insertLinkedAvailability(matchId, ADMIN_ID)

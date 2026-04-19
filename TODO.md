@@ -6,12 +6,6 @@
 
 ## Bugs / Edge Cases
 
-- [ ] **[P1]** Missing notifications when a match is confirmed or declined
-  - The schema and UI support `match_confirmed`, `match_cancelled`, and `match_declined`
-  - But the backend only inserts `match_proposed` notifications during `run_matchmaking()`
-  - `respond_to_match()` changes match status without notifying the other participant(s)
-  - Fix: emit response-side notifications from the RPC when a player accepts or declines
-  - Affected: `20260413000001_initial_schema.sql`, `20260415000002_availability_match_link.sql`, `20260416000002_respond_to_match_rpc.sql`, `NotificationsPage.tsx`
 - [ ] **[P1]** Banned users can still post and appear in availability browse
   - Matchmaking excludes banned players, but RLS still allows them to insert/update their own availability rows
   - The browse query also shows open slots without filtering out banned players
@@ -110,6 +104,11 @@
 
 ## Improvements
 
+- [ ] **[P3]** Bias matchmaking tiebreaker toward longer overlap
+  - Current tiebreaker (among equally-rated players) is `a.start_time` — picks whoever starts their window earliest in the day
+  - More meaningful tiebreaker: longest overlap duration, so matched players have the most scheduling flexibility
+  - Fix: replace `a.start_time` with `least(a.end_time, avail_a.end_time) - greatest(a.start_time, avail_a.start_time) desc` in the `ORDER BY` of `run_matchmaking()`
+  - Affected: `20260413000001_initial_schema.sql`, `run_matchmaking()`
 - [ ] **[P3]** Regenerate Supabase types to eliminate `as any` casts
   - Multiple files use `as any` on `.upsert()` and `.insert()` calls due to stale/missing types
   - Fix: run `npx supabase gen types typescript --local > src/types/database.ts` and update Supabase client generic
