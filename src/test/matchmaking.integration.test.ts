@@ -65,9 +65,15 @@ describe('run_matchmaking()', () => {
 
   beforeEach(async () => {
     await clearMatchData()
-    // Reset NTRP ratings to seed defaults
-    await supabase.from('profiles').update({ ntrp_rating: 4.0 }).eq('id', ADMIN_ID)
-    await supabase.from('profiles').update({ ntrp_rating: 3.5 }).eq('id', PLAYER_ID)
+    // Reset profile defaults
+    await supabase
+      .from('profiles')
+      .update({ ntrp_rating: 4.0, preferred_match_type: 'both' })
+      .eq('id', ADMIN_ID)
+    await supabase
+      .from('profiles')
+      .update({ ntrp_rating: 3.5, preferred_match_type: 'both' })
+      .eq('id', PLAYER_ID)
   })
 
   it('creates a match when two players have overlapping availability', async () => {
@@ -180,5 +186,53 @@ describe('run_matchmaking()', () => {
 
     const count = await runMatchmaking()
     expect(count).toBe(1)
+  })
+
+  it('does not match a player whose profile prefers doubles only', async () => {
+    // Slot preference allows singles, but profile is doubles-only.
+    await supabase
+      .from('profiles')
+      .update({ preferred_match_type: 'doubles' })
+      .eq('id', PLAYER_ID)
+    await postAvailability(ADMIN_ID, '09:00', '11:00', 'both')
+    await postAvailability(PLAYER_ID, '09:00', '11:00', 'both')
+
+    const count = await runMatchmaking()
+    expect(count).toBe(0)
+  })
+
+  it('does not match when the iterating player profile is doubles-only', async () => {
+    // Covers the outer-loop filter (avail_a profile preference).
+    await supabase
+      .from('profiles')
+      .update({ preferred_match_type: 'doubles' })
+      .eq('id', ADMIN_ID)
+    await postAvailability(ADMIN_ID, '09:00', '11:00', 'both')
+    await postAvailability(PLAYER_ID, '09:00', '11:00', 'both')
+
+    const count = await runMatchmaking()
+    expect(count).toBe(0)
+  })
+
+  it('matches when both players prefer singles via profile', async () => {
+    await supabase
+      .from('profiles')
+      .update({ preferred_match_type: 'singles' })
+      .eq('id', ADMIN_ID)
+    await supabase
+      .from('profiles')
+      .update({ preferred_match_type: 'singles' })
+      .eq('id', PLAYER_ID)
+    await postAvailability(ADMIN_ID, '09:00', '11:00', 'both')
+    await postAvailability(PLAYER_ID, '09:00', '11:00', 'both')
+
+    const count = await runMatchmaking()
+    expect(count).toBe(1)
+
+    const { data: matches } = await supabase
+      .from('matches')
+      .select('match_type')
+      .eq('court_group_id', COURT_GROUP_ID)
+    expect(matches![0].match_type).toBe('singles')
   })
 })

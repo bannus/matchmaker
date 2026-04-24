@@ -11,6 +11,12 @@
 
 ## Bugs Fixed
 
+- [x] **Matchmaking ignores singles/doubles preference** (April 2026)
+  - `run_matchmaking()` selected `profiles.preferred_match_type` as `player_pref` but never used it
+  - Result: a player whose profile was set to doubles-only could still be paired into singles
+  - Fixed in `20260424000001_matchmaking_respects_preferences.sql` — both the slot `match_type` and the profile `preferred_match_type` must allow singles (`'singles'` or `'both'`) for both players. Doubles matchmaking remains unimplemented (requires 4 players); doubles-only players are now skipped instead of being silently paired into singles.
+  - Affected: `run_matchmaking()`, `matchmaking.integration.test.ts`, `docs/matchmaking.md`
+
 - [x] **Missing notifications when a match is confirmed or declined** (April 2026)
   - The schema and UI support `match_confirmed`, `match_cancelled`, and `match_declined`
   - But the backend only inserted `match_proposed` notifications during `run_matchmaking()`

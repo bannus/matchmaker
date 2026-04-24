@@ -211,15 +211,7 @@ This matters when debugging from the client: a missing row may be an RLS issue, 
 
 ### Doubles is not fully implemented
 
-The schema supports doubles-related concepts, but current matchmaking behavior still creates:
-
-```sql
-match_type = 'singles'
-```
-
-and does not fully use `player_pref`.
-
-So today, matchmaking should be treated as **singles-first** logic.
+The schema supports doubles, but `run_matchmaking()` currently only creates singles matches (doubles requires coordinating four players). The function requires both players' slot `match_type` **and** profile `preferred_match_type` to allow singles (`'singles'` or `'both'`); players who prefer doubles only are not paired by the current matchmaker.
 
 ### Notifications are only emitted on proposal creation
 
