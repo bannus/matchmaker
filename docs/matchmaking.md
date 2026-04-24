@@ -209,9 +209,25 @@ This matters when debugging from the client: a missing row may be an RLS issue, 
 
 ## Current Limitations
 
-### Doubles is not fully implemented
+### Doubles is intentionally deferred
 
-The schema supports doubles, but `run_matchmaking()` currently only creates singles matches (doubles requires coordinating four players). The function requires both players' slot `match_type` **and** profile `preferred_match_type` to allow singles (`'singles'` or `'both'`); players who prefer doubles only are not paired by the current matchmaker.
+The schema (`profiles.preferred_match_type`, `availability.match_type`, `matches.match_type`) allows `'doubles'`, but `run_matchmaking()` only forms **singles** matches. The doubles option has been removed from the UI (profile setup, profile edit, post-availability form) so players can't pick it and then silently never get matched.
+
+The check constraints are left in place so the schema stays forward-compatible for a future doubles build-out.
+
+#### Why doubles is non-trivial — the stranding problem
+
+Doubles needs 4 players overlapping on the same court group and date. The current matchmaker is a greedy pairwise loop. If it simply tried to match doubles the same way, "both"-pref players would almost always be paired into singles before a foursome could form, leaving doubles-only players stranded. To actually deliver doubles matches, the matchmaker has to **hold back eligible players** to try forming a foursome first.
+
+#### What a future doubles implementation needs
+
+1. **Two-phase matchmaking.** First pass tries to form doubles foursomes, anchored on players whose preference is doubles-only (or whose slot is doubles-only), plus 3 others whose slot + profile both allow doubles. Second pass runs the existing singles logic on whoever's left.
+2. **Team NTRP balancing.** A ±0.5 pairwise band isn't enough for 4 players. Either require a tighter overall NTRP band (e.g. ±1.0 spread across all 4) or pair the high and low NTRPs as one team and the two middles as the other, so both teams are roughly balanced.
+3. **4-player response flow.** `respond_to_match()` locks the match row, which is race-safe, but the surrounding UX assumes 2 participants. Match cards must show 3 opponents, and intermediate states ("2 of 4 accepted") must be handled without confirming prematurely. Decline/cancel semantics with 4 players need a decision: does any decline cancel, or does the match fall back to 3-waiting?
+4. **Court capacity.** A confirmed doubles match occupies a court for ~2 hours. Today matchmaking doesn't model court counts at all — crowding is derived in the UI. Doubles pushes capacity concerns into the matching layer.
+5. **UI.** Profile and availability pickers would need to re-expose the doubles option; match cards and calendar integrations would need to render multiple opponents; notification copy needs updating.
+
+Until those are addressed, doubles is **explicitly not supported**. Anyone whose profile was previously set to `'doubles'` was normalized to `'both'` by migration `20260424000002_normalize_doubles_preference.sql` so they participate in singles matching.
 
 ### Notifications are only emitted on proposal creation
 

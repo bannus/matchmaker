@@ -240,12 +240,6 @@ export function ProfileSetup() {
                     emoji: '👤',
                   },
                   {
-                    value: 'doubles' as const,
-                    label: 'Doubles',
-                    desc: '2 vs 2',
-                    emoji: '👥',
-                  },
-                  {
                     value: 'both' as const,
                     label: 'Either',
                     desc: "I'm up for both!",

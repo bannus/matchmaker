@@ -178,7 +178,6 @@ export function ProfilePage() {
                 {(
                   [
                     { value: 'singles', label: 'Singles' },
-                    { value: 'doubles', label: 'Doubles' },
                     { value: 'both', label: 'Both' },
                   ] as const
                 ).map((option) => (

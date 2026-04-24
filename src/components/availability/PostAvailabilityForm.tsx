@@ -115,7 +115,7 @@ export function PostAvailabilityForm({ onClose, onCreated }: Props) {
               Match Type
             </legend>
             <div className="flex gap-4">
-              {(['singles', 'doubles', 'both'] as MatchTypePreference[]).map(
+              {(['singles', 'both'] as MatchTypePreference[]).map(
                 (type) => (
                   <label key={type} className="flex items-center gap-1.5 text-sm">
                     <input

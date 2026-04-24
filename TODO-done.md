@@ -11,6 +11,13 @@
 
 ## Bugs Fixed
 
+- [x] **Cleanly deferred doubles support** (April 2026)
+  - Doubles was half-built: schema allowed it, UI exposed it, but `run_matchmaking()` only creates singles. After the preference-respect fix, doubles-only players silently never got matched.
+  - Real doubles would need two-phase matchmaking (to avoid stranding doubles-only players behind greedy singles pairing), team NTRP balancing, a 4-player accept/decline flow, and court-capacity modeling — too much for unproven MVP demand.
+  - Removed the `'doubles'` option from `ProfileSetupPage`, `ProfilePage`, and `PostAvailabilityForm`. Added `20260424000002_normalize_doubles_preference.sql` to flip existing `'doubles'` rows → `'both'`. Schema check constraints left intact for future revival. Full design notes documented in `docs/matchmaking.md` under "Doubles is intentionally deferred".
+  - Follow-up (P3 in TODO.md): build doubles matchmaking properly.
+  - Affected: `ProfileSetupPage.tsx`, `ProfilePage.tsx`, `PostAvailabilityForm.tsx`, new migration, `docs/matchmaking.md`, `profiles.integration.test.ts`
+
 - [x] **Matchmaking ignores singles/doubles preference** (April 2026)
   - `run_matchmaking()` selected `profiles.preferred_match_type` as `player_pref` but never used it
   - Result: a player whose profile was set to doubles-only could still be paired into singles

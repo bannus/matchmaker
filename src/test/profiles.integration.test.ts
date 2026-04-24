@@ -67,9 +67,11 @@ describe('profile updates', () => {
   })
 
   it('can update preferred match type', async () => {
+    // Player2 is seeded as 'singles'; switch to 'both'. We avoid 'doubles'
+    // here because the UI no longer exposes it (see docs/matchmaking.md).
     const { error } = await playerClient
       .from('profiles')
-      .update({ preferred_match_type: 'doubles' })
+      .update({ preferred_match_type: 'both' })
       .eq('id', PLAYER_ID)
 
     expect(error).toBeNull()
@@ -80,7 +82,19 @@ describe('profile updates', () => {
       .eq('id', PLAYER_ID)
       .single()
 
-    expect(data!.preferred_match_type).toBe('doubles')
+    expect(data!.preferred_match_type).toBe('both')
+  })
+
+  it("still allows 'doubles' at the DB layer for forward compatibility", async () => {
+    // Doubles is intentionally hidden from the UI but the schema check
+    // constraint must continue to accept it so a future doubles build-out
+    // doesn't require a migration to re-widen the enum.
+    const { error } = await playerClient
+      .from('profiles')
+      .update({ preferred_match_type: 'doubles' })
+      .eq('id', PLAYER_ID)
+
+    expect(error).toBeNull()
   })
 
   it('can change court group', async () => {
