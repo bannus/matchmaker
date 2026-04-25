@@ -27,6 +27,7 @@
   - Building it properly requires: two-phase matchmaking (doubles-first pass anchored on doubles-only players, singles fallback), team NTRP balancing, 4-player accept/decline flow, and court-capacity modeling
   - See `docs/matchmaking.md` → "Doubles is intentionally deferred" for the full design notes
   - Schema constraints still allow `'doubles'` so no migration is needed to revive it
+- [ ] **[P2]** Email notifications via Resend
 - [ ] **[P2]** Player messaging for match coordination
   - Players need a way to communicate after being matched (e.g., "I'll bring balls", "let's use court 3")
   - Recommended approach: match-scoped message thread (comment thread per match)
@@ -83,6 +84,25 @@
   - Filter by `Athletics === 'Tennis'`, includes name + lat/lng coordinates
   - Could expand to other cities with similar open data portals (Boston, Somerville, etc.)
   - Admin "Import from public data" button that fetches + previews before inserting
+  - Broader sources to consider: Google Places API, OpenStreetMap (`sport=tennis`), USTA facility database
+- [ ] **[P3]** Self-serve court creation by users
+  - Currently creating a court group requires manual super-admin intervention
+  - Lower priority if auto-import covers most courts, but needed as a long-tail escape hatch
+  - Flow: user submits a court (name, location), goes into a review queue or is auto-approved
+  - Creator becomes the initial steward/admin of that court
+- [ ] **[P3]** Public QR flyer link (no login required)
+  - Currently the QR flyer is only accessible inside the admin panel
+  - If anyone at a court should be able to share it (no admin gatekeeper model), the flyer URL needs to be publicly accessible
+  - Route: `/courts/:courtGroupId/flyer` — readable without auth, printable
+- [ ] **[P3]** User flagging and reporting
+  - Players should be able to flag a user or report an issue at a court without needing admin access
+  - Flags notify the court steward/admin for review
+  - Repeated flags from multiple users could surface to super-admin automatically
+  - Part of the lightweight crowdsourced moderation model
+- [ ] **[P3]** Court activity dashboard for admins/stewards
+  - Admins need visibility into whether their court is healthy: active players, last match made, stale availability
+  - Key metrics: total members, matches made last 30 days, last matchmaking run result, number of open availability windows
+  - Helps identify courts that have gone dormant so they can be re-engaged or archived
 
 ## UX Issues
 
