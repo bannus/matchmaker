@@ -21,6 +21,7 @@ export function PostAvailabilityForm({ onClose, onCreated }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   const validate = (): string | null => {
+    if (profile?.is_banned) return 'Your account has been suspended. Contact an admin.'
     if (date < today) return 'Date must be today or later.'
     if (endTime <= startTime) return 'End time must be after start time.'
     if (!profile?.court_group_id) return 'You must join a court group first.'

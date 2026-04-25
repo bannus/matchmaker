@@ -6,12 +6,6 @@
 
 ## Bugs / Edge Cases
 
-- [ ] **[P1]** Banned users can still post and appear in availability browse
-  - Matchmaking excludes banned players, but RLS still allows them to insert/update their own availability rows
-  - The browse query also shows open slots without filtering out banned players
-  - Result: banned users still show up in a core customer-facing flow even though they can never be matched
-  - Fix: block availability creation/updates for banned users and exclude banned players from browse queries
-  - Affected: `20260413000001_initial_schema.sql`, `20260415000002_availability_match_link.sql`, `AvailabilityPage.tsx`, `PostAvailabilityForm.tsx`
 - [ ] **[P2]** Notification badge goes stale after mark-as-read
   - `useNotificationCount` subscribes to realtime inserts and increments the count
   - But marking notifications as read in `NotificationsPage` never decrements the badge

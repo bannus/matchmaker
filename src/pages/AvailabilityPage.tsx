@@ -20,6 +20,7 @@ interface BrowseSlot {
 
 interface ProfileSummary {
   ntrp_rating: number | null
+  is_banned: boolean
 }
 
 interface BrowseSlotQueryRow {
@@ -65,10 +66,11 @@ export function AvailabilityPage() {
 
     const { data } = await supabase
       .from('availability')
-      .select('id, date, start_time, end_time, match_type, notes, player_id, profiles:player_id(ntrp_rating)')
+      .select('id, date, start_time, end_time, match_type, notes, player_id, profiles:player_id!inner(ntrp_rating, is_banned)')
       .eq('court_group_id', profile.court_group_id)
       .eq('status', 'open')
       .neq('player_id', user.id)
+      .eq('profiles.is_banned', false)
       .gte('date', today)
       .order('date', { ascending: true })
       .order('start_time', { ascending: true })
