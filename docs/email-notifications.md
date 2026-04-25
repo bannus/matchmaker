@@ -71,6 +71,16 @@ A simple manual retry pattern (e.g. from Supabase Studio):
 -- POST directly to the function with the notification_id you want re-tried.
 ```
 
+## Authentication & `verify_jwt = false`
+
+Both Edge Functions in this pipeline run with `verify_jwt = false` (set in `supabase/config.toml`). They are not unauthenticated — they each enforce their own auth — but they explicitly opt out of the platform's JWT gateway because the callers cannot supply a Supabase JWT:
+
+- **`send-notification-email`** is invoked by `pg_net` from a Postgres trigger. The database has no GoTrue session and cannot mint user JWTs. The only "JWT" Postgres could attach is the **service role key**, which grants full unrestricted DB access. Instead, the trigger sends `X-Trigger-Secret: <EMAIL_TRIGGER_SECRET>` and the function compares it against its env var (constant-time). A leak of this token only allows triggering email sends for existing notification rows — no DB access, no privilege escalation. This is principle of least privilege: the auth token grants only the capability the caller actually needs.
+
+- **`unsubscribe`** is invoked by mail clients clicking the RFC 8058 `List-Unsubscribe` URL. Mail clients have no Supabase session at all. The function authenticates the request by HMAC-verifying the signed token in the URL (bound to `user_id`, `type`, `iat`).
+
+The standard Supabase pattern (`Authorization: Bearer <service_role_key>` + `verify_jwt = true`) was deliberately rejected: it would require embedding the service role key in `pg_net` request headers, where it would land in `pg_net._http_response` logs. Any leak of that table would be a total compromise — equivalent to handing out the database password — versus the current shared secret which has a tightly scoped blast radius.
+
 ## Configuration
 
 ### Server-side secrets (Edge Functions)
