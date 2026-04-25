@@ -6,12 +6,6 @@
 
 ## Bugs / Edge Cases
 
-- [ ] **[P2]** Notification badge goes stale after mark-as-read
-  - `useNotificationCount` subscribes to realtime inserts and increments the count
-  - But marking notifications as read in `NotificationsPage` never decrements the badge
-  - `refreshCount()` exists but is never called after mark-as-read
-  - Fix: call `refreshCount()` after marking read, or subscribe to UPDATE events too
-  - Affected: `useNotificationCount.ts`, `NotificationsPage.tsx`, `AppLayout.tsx`
 - [ ] **[P2]** Auth callback leaks subscription and timeout on success
   - `AuthCallback.tsx` sets up `onAuthStateChange` + a 10s timeout but never cleans them up on the success path
   - Can cause state updates on unmounted components

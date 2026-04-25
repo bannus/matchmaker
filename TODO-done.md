@@ -11,6 +11,12 @@
 
 ## Bugs Fixed
 
+- [x] **Notification badge goes stale after mark-as-read** (April 2026)
+  - `useNotificationCount` subscribed to realtime inserts and incremented the count, but marking notifications as read in `NotificationsPage` never decremented the badge
+  - `refreshCount()` existed but was never called after mark-as-read
+  - Fix: added an UPDATE event listener to the same realtime channel in `useNotificationCount.ts` — re-fetches the true unread count immediately when any notification row is updated
+  - Affected: `useNotificationCount.ts`
+
 - [x] **Cleanly deferred doubles support** (April 2026)
   - Doubles was half-built: schema allowed it, UI exposed it, but `run_matchmaking()` only creates singles. After the preference-respect fix, doubles-only players silently never got matched.
   - Real doubles would need two-phase matchmaking (to avoid stranding doubles-only players behind greedy singles pairing), team NTRP balancing, a 4-player accept/decline flow, and court-capacity modeling — too much for unproven MVP demand.

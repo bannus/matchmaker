@@ -29,7 +29,7 @@ export function useNotificationCount() {
       void fetchCount()
     }, 0)
 
-    // Subscribe to real-time notification inserts
+    // Subscribe to real-time notification inserts and read-status updates
     const channel = supabase
       .channel('notifications')
       .on(
@@ -42,6 +42,18 @@ export function useNotificationCount() {
         },
         () => {
           setUnreadCount((prev) => prev + 1)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user?.id}`,
+        },
+        () => {
+          void fetchCount()
         }
       )
       .subscribe()
