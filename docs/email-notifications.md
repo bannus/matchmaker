@@ -87,16 +87,22 @@ Set in production with `supabase secrets set`:
 
 `EMAIL_DELIVERY_MODE` is optional and defaults to `resend`. Set it to `log-only` only for local/testing if you want the function to log the outbound email instead of calling Resend. In `log-only` mode, `notifications.email_sent_at` stays `NULL`.
 
-### Database GUCs (Postgres trigger)
+### Database config (Postgres trigger)
 
-The trigger reads two GUCs to know where to call the Edge Function and which secret to send. Set them per database (production):
+The trigger reads two values to know where to call the Edge Function and which secret to send. Production uses the `app_config` table because Supabase managed Postgres restricts `ALTER DATABASE ... SET app.settings.*`:
 
 ```sql
-ALTER DATABASE postgres SET app.settings.edge_functions_url = 'https://<project>.supabase.co/functions/v1';
-ALTER DATABASE postgres SET app.settings.email_trigger_secret = '<must match EMAIL_TRIGGER_SECRET>';
+INSERT INTO app_config (key, value) VALUES
+  ('edge_functions_url',   'https://<project>.supabase.co/functions/v1'),
+  ('email_trigger_secret', '<must match EMAIL_TRIGGER_SECRET>')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 ```
 
-If either GUC is unset or empty, the trigger is a no-op. **Applying the migration to a fresh database does not start sending email** — the pipeline is opt-in per environment.
+`app_config` has RLS enabled with no policies, so it is unreadable through PostgREST. The `SECURITY DEFINER` trigger function reads it as the function owner.
+
+The trigger also accepts the equivalent GUCs (`app.settings.edge_functions_url`, `app.settings.email_trigger_secret`) and prefers the table when both are set. Local dev keeps using GUCs because `ALTER DATABASE` works in the local stack.
+
+If neither source is set or the value is empty, the trigger is a no-op. **Applying the migration to a fresh database does not start sending email** — the pipeline is opt-in per environment.
 
 ## Local Development
 

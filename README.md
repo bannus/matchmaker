@@ -77,13 +77,14 @@ To enable in production:
    supabase functions deploy send-notification-email
    supabase functions deploy unsubscribe
    ```
-4. Point the Postgres trigger at the Edge Functions (run once against the production DB):
+4. Point the Postgres trigger at the Edge Functions (run once against the production DB via the dashboard SQL editor):
    ```sql
-   ALTER DATABASE postgres SET app.settings.edge_functions_url
-     = 'https://<project>.supabase.co/functions/v1';
-   ALTER DATABASE postgres SET app.settings.email_trigger_secret
-     = '<must match EMAIL_TRIGGER_SECRET>';
+   INSERT INTO app_config (key, value) VALUES
+     ('edge_functions_url',   'https://<project>.supabase.co/functions/v1'),
+     ('email_trigger_secret', '<must match EMAIL_TRIGGER_SECRET>')
+   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
    ```
+   (Supabase managed Postgres blocks `ALTER DATABASE ... SET app.settings.*`, so the trigger reads from `app_config` instead.)
 
 See [`docs/email-notifications.md`](docs/email-notifications.md) for architecture details and local-dev setup.
 
