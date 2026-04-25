@@ -27,7 +27,6 @@
   - Building it properly requires: two-phase matchmaking (doubles-first pass anchored on doubles-only players, singles fallback), team NTRP balancing, 4-player accept/decline flow, and court-capacity modeling
   - See `docs/matchmaking.md` → "Doubles is intentionally deferred" for the full design notes
   - Schema constraints still allow `'doubles'` so no migration is needed to revive it
-- [ ] **[P2]** Email notifications via Resend
 - [ ] **[P2]** Player messaging for match coordination
   - Players need a way to communicate after being matched (e.g., "I'll bring balls", "let's use court 3")
   - Recommended approach: match-scoped message thread (comment thread per match)
