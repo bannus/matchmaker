@@ -2,11 +2,18 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { ntrpLevels, getNtrpLabel } from '../utils/ntrp'
-import type { MatchTypePreference, Profile } from '../types'
+import type { EmailPrefs, MatchTypePreference, Profile } from '../types'
 
 interface CourtGroupOption {
   id: string
   name: string
+}
+
+const DEFAULT_EMAIL_PREFS: EmailPrefs = {
+  match_proposed: true,
+  match_confirmed: true,
+  match_cancelled: true,
+  match_declined: true,
 }
 
 interface ProfileFormState {
@@ -14,7 +21,7 @@ interface ProfileFormState {
   bio: string
   ntrpRating: number | null
   matchType: MatchTypePreference
-  notificationEmail: boolean
+  emailPrefs: EmailPrefs
   notificationInApp: boolean
   courtGroupId: string | null
 }
@@ -25,7 +32,7 @@ function getProfileFormState(profile: Profile | null): ProfileFormState {
     bio: profile?.bio ?? '',
     ntrpRating: profile?.ntrp_rating ?? null,
     matchType: profile?.preferred_match_type ?? 'both',
-    notificationEmail: profile?.notification_email ?? true,
+    emailPrefs: { ...DEFAULT_EMAIL_PREFS, ...(profile?.email_prefs ?? {}) },
     notificationInApp: profile?.notification_in_app ?? true,
     courtGroupId: profile?.court_group_id ?? null,
   }
@@ -70,7 +77,7 @@ export function ProfilePage() {
       bio: form.bio.trim() || null,
       ntrp_rating: form.ntrpRating,
       preferred_match_type: form.matchType,
-      notification_email: form.notificationEmail,
+      email_prefs: form.emailPrefs,
       notification_in_app: form.notificationInApp,
       court_group_id: form.courtGroupId,
     }
@@ -229,39 +236,64 @@ export function ProfilePage() {
         {/* Notifications */}
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="font-semibold text-gray-900 mb-4">Notifications</h2>
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.notificationEmail}
-                onChange={(e) => updateForm({ notificationEmail: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-              />
-              <div>
-                <div className="text-sm font-medium text-gray-900">
-                  Email notifications
-                </div>
-                <div className="text-xs text-gray-500">
-                  Receive match updates via email
-                </div>
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm font-medium text-gray-900 mb-2">
+                Email notifications
               </div>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.notificationInApp}
-                onChange={(e) => updateForm({ notificationInApp: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-              />
-              <div>
-                <div className="text-sm font-medium text-gray-900">
-                  In-app notifications
-                </div>
-                <div className="text-xs text-gray-500">
-                  See notifications within the app
-                </div>
+              <div className="text-xs text-gray-500 mb-3">
+                Choose which match events should send you an email.
               </div>
-            </label>
+              <div className="space-y-2">
+                {(
+                  [
+                    { key: 'match_proposed', label: 'New match proposed' },
+                    { key: 'match_confirmed', label: 'Match confirmed' },
+                    { key: 'match_cancelled', label: 'Match cancelled' },
+                    { key: 'match_declined', label: 'Opponent declined' },
+                  ] as const
+                ).map((opt) => (
+                  <label
+                    key={opt.key}
+                    className="flex items-center gap-3 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.emailPrefs[opt.key]}
+                      onChange={(e) =>
+                        updateForm({
+                          emailPrefs: {
+                            ...form.emailPrefs,
+                            [opt.key]: e.target.checked,
+                          },
+                        })
+                      }
+                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="text-sm text-gray-900">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 pt-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.notificationInApp}
+                  onChange={(e) => updateForm({ notificationInApp: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    In-app notifications
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    See notifications within the app
+                  </div>
+                </div>
+              </label>
+            </div>
           </div>
         </div>
 

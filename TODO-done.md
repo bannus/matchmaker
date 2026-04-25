@@ -79,6 +79,14 @@
 
 ## Features
 
+- [x] **Email notifications via Resend** (April 2026)
+  - Postgres `AFTER INSERT` trigger on `notifications` calls a `send-notification-email` Edge Function via `pg_net`, which renders subject/html/text per type and POSTs to Resend
+  - Per-type opt-in preferences in `profiles.email_prefs` (jsonb), surfaced as four checkboxes in `ProfilePage`
+  - RFC 8058 / RFC 2369 one-click unsubscribe: emails carry `List-Unsubscribe` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`; the `unsubscribe` Edge Function only acts on POST so crawler/scanner GETs cannot silently unsubscribe users
+  - `notifications.email_sent_at` column tracks delivery state; trigger and function are idempotent; failed sends remain eligible for retry
+  - Local-dev fallback: when `RESEND_API_KEY` is unset, the function logs the rendered email and stamps `email_sent_at`, so flows can be exercised end to end without real email
+  - See `docs/email-notifications.md`
+
 - [x] **In-app notifications with realtime badge** (April 2026)
   - Notification bell with unread count badge in the app header
   - Full notifications page with mark-as-read

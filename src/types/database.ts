@@ -10,6 +10,7 @@ import type {
   MatchStatus,
   PlayerResponse,
   NotificationType,
+  EmailPrefs,
 } from './models'
 
 export interface Database {
@@ -80,7 +81,7 @@ export interface Database {
           bio: string | null
           ntrp_rating: number | null
           preferred_match_type: MatchTypePreference
-          notification_email: boolean
+          email_prefs: EmailPrefs
           notification_in_app: boolean
           court_group_id: string | null
           is_admin: boolean
@@ -94,7 +95,7 @@ export interface Database {
           bio?: string | null
           ntrp_rating?: number | null
           preferred_match_type?: MatchTypePreference
-          notification_email?: boolean
+          email_prefs?: EmailPrefs
           notification_in_app?: boolean
           court_group_id?: string | null
           is_admin?: boolean
@@ -105,7 +106,7 @@ export interface Database {
           bio?: string | null
           ntrp_rating?: number | null
           preferred_match_type?: MatchTypePreference
-          notification_email?: boolean
+          email_prefs?: EmailPrefs
           notification_in_app?: boolean
           court_group_id?: string | null
         }
@@ -200,6 +201,7 @@ export interface Database {
           body: string
           data: Record<string, unknown> | null
           read: boolean
+          email_sent_at: string | null
           created_at: string
         }
         Insert: {
@@ -210,9 +212,11 @@ export interface Database {
           body: string
           data?: Record<string, unknown> | null
           read?: boolean
+          email_sent_at?: string | null
         }
         Update: {
           read?: boolean
+          email_sent_at?: string | null
         }
       }
     }

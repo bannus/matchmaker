@@ -11,6 +11,15 @@ export type NotificationType =
   | 'match_declined'
   | 'system'
 
+export type EmailableNotificationType = Exclude<NotificationType, 'system'>
+
+export interface EmailPrefs {
+  match_proposed: boolean
+  match_confirmed: boolean
+  match_cancelled: boolean
+  match_declined: boolean
+}
+
 export interface CourtGroup {
   id: string
   name: string
@@ -39,7 +48,7 @@ export interface Profile {
   bio: string | null
   ntrp_rating: number | null
   preferred_match_type: MatchTypePreference
-  notification_email: boolean
+  email_prefs: EmailPrefs
   notification_in_app: boolean
   court_group_id: string | null
   is_admin: boolean
@@ -90,5 +99,6 @@ export interface Notification {
   body: string
   data: Record<string, unknown> | null
   read: boolean
+  email_sent_at: string | null
   created_at: string
 }

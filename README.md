@@ -56,6 +56,37 @@ A web app that helps neighbors find tennis partners at their local courts. Post 
    npm run dev
    ```
 
+### Email notifications (optional, production)
+
+Match-related notifications (`match_proposed`, `match_confirmed`, `match_cancelled`, `match_declined`) can be delivered as email through [Resend](https://resend.com). Players choose which types to receive at `/profile`, and emails include RFC 8058 one-click unsubscribe headers.
+
+To enable in production:
+
+1. Verify a sender domain in Resend and create an API key.
+2. Set the Edge Function secrets:
+   ```bash
+   supabase secrets set RESEND_API_KEY=re_xxx
+   supabase secrets set RESEND_FROM='Matchmaker <noreply@your-domain>'
+   supabase secrets set APP_URL=https://your-app-domain.com
+   supabase secrets set EMAIL_TRIGGER_SECRET=$(openssl rand -hex 32)
+   supabase secrets set UNSUBSCRIBE_SECRET=$(openssl rand -hex 32)
+   ```
+   `RESEND_API_KEY`, `EMAIL_TRIGGER_SECRET`, and `UNSUBSCRIBE_SECRET` are required in normal delivery mode; the functions fail closed if any required value is unset.
+3. Deploy the functions:
+   ```bash
+   supabase functions deploy send-notification-email
+   supabase functions deploy unsubscribe
+   ```
+4. Point the Postgres trigger at the Edge Functions (run once against the production DB):
+   ```sql
+   ALTER DATABASE postgres SET app.settings.edge_functions_url
+     = 'https://<project>.supabase.co/functions/v1';
+   ALTER DATABASE postgres SET app.settings.email_trigger_secret
+     = '<must match EMAIL_TRIGGER_SECRET>';
+   ```
+
+See [`docs/email-notifications.md`](docs/email-notifications.md) for architecture details and local-dev setup.
+
 ### Project Structure
 
 ```

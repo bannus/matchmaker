@@ -176,9 +176,9 @@ Known issue:
 
 The polling fallback corrects this eventually, but not instantly.
 
-### No email notifications yet
+### Email notifications
 
-The repo README mentions transactional email as part of the broader architecture, but notification email delivery is still planned work rather than a current feature.
+See [`email-notifications.md`](./email-notifications.md) for the production email pipeline (Resend + RFC 8058 unsubscribe). Each `INSERT` into `notifications` for an emailable type fires a Postgres trigger that calls the `send-notification-email` Edge Function via `pg_net`, which renders and sends the email. Delivery state is tracked on `notifications.email_sent_at`. Players choose which types to receive at `/profile`.
 
 ## Debugging Checklist
 
