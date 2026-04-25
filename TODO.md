@@ -59,6 +59,25 @@
   - Show nearby courts sorted by distance (requires geolocation above)
   - Single form submission creates one availability row per selected court group
   - Matched at whichever court finds an opponent first
+- [ ] **[P2]** Admin onboarding flow
+  - New court admins have no guided setup experience — they land in the admin panel cold
+  - Flow should cover: confirm court details are accurate, print/share QR flyer, invite first players
+  - Could be a checklist-style setup wizard shown until all steps are complete
+  - Triggered when a user is first granted admin role on a court group
+- [ ] **[P2]** Admin can block off court availability
+  - Admins need to mark time windows as unavailable (school use, resurfacing, organized group bookings, etc.)
+  - Blocked windows should suppress matchmaking for that court during those times
+  - UI: calendar-style block entry in admin panel with optional label ("School team practice", "Resurfacing")
+  - Matchmaking function should skip availability windows that overlap a court blackout
+- [ ] **[P3]** Admin can pin announcements to a court
+  - Admins can post a short notice visible to all players at that court (e.g., "Courts closed this weekend for resurfacing")
+  - Shown prominently on the dashboard and courts page for affected court group
+  - Optional expiry date so stale announcements don't linger
+- [ ] **[P3]** Consider a lightweight "court steward" role
+  - Full admin may be more than most court volunteers want to take on
+  - Steward role: gets notified of flagged/reported users, can ban from their court, but cannot edit court details or run matchmaking manually
+  - Courts without a steward still function — role is optional, not required
+  - Reduces friction for recruiting community moderators vs. asking for full admin commitment
 - [ ] **[P3]** Auto-populate courts from public GIS data
   - Cambridge has 7 public tennis locations in official open data (GeoJSON, CC license)
   - Source: `github.com/cambridgegis/cambridgegis_data/Recreation/Athletic_Facilities`
