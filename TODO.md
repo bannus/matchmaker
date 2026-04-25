@@ -103,6 +103,19 @@
   - Key metrics: total members, matches made last 30 days, last matchmaking run result, number of open availability windows
   - Helps identify courts that have gone dormant so they can be re-engaged or archived
 
+## Engineering / Architecture
+
+- [ ] **[P4]** Move `run_matchmaking()` out of Postgres into a TypeScript Edge Function
+  - Currently the matchmaking algorithm lives in PL/pgSQL, making it hard to test, debug, and extend (especially for doubles)
+  - **What moves:** `run_matchmaking()` — the candidate-finding logic, match creation, availability updates, and notification inserts
+  - **What stays:** `respond_to_match()` — its row-locking and race-safety semantics are a natural fit for SQL and hard to replicate safely in application code
+  - **Target:** Supabase Edge Function (Deno/TypeScript, already used in this project for `court-redirect`)
+  - **Triggering changes:**
+    - Replace the `availability` INSERT trigger with a Supabase Database Webhook → Edge Function
+    - Replace `pg_cron` with a Vercel Cron Job or GitHub Actions schedule calling the same Edge Function
+  - **Atomicity:** The SQL function does everything in one transaction. The Edge Function would need to issue an explicit `BEGIN`/`COMMIT` via a raw SQL connection (e.g. `postgres.js`) or accept that a crash mid-run could leave partial state — a retry-safe design helps here
+  - **Payoff:** The matching algorithm (NTRP filtering, overlap math, preference compatibility, future doubles two-phase logic) becomes TypeScript that can be unit tested with mocked data, stepped through with a debugger, and observed with structured logging — instead of `RAISE NOTICE` and Postgres logs
+
 ## UX Issues
 
 - [ ] **[P2]** No error states on data fetches — infinite spinners on failure
