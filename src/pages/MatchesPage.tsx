@@ -346,7 +346,7 @@ export function MatchesPage() {
                             </>
                           )}
 
-                          {key === 'upcoming' && (
+                          {key === 'upcoming' && m.status === 'confirmed' && (
                             <>
                               <a
                                 href={generateGoogleCalendarUrl({
