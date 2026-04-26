@@ -4,18 +4,19 @@ A web app that helps neighbors find tennis partners at their local courts. Post 
 
 ## Features
 
-- **Smart Matchmaking**: Post when you're free, and the system matches you with compatible players based on NTRP rating (±0.5) and time overlap
+- **Smart Matchmaking**: Post when you're free, and the system automatically matches you with compatible players based on NTRP rating (±0.5) and time overlap
 - **Guided NTRP Rating**: Friendly skill-level picker with plain-language descriptions — no intimidating tennis jargon
-- **Singles & Doubles**: Support for both match types
+- **Singles & Doubles**: Support for both match types, with per-player preferences
 - **Court Crowding Warnings**: See when time slots are getting busy at your local courts
 - **Calendar Integration**: Add confirmed matches to Google Calendar or download .ics files
-- **Notifications**: In-app notification bell + email notifications for match proposals and confirmations
+- **Notifications**: In-app notification bell + email notifications for match proposals and confirmations, with per-type preferences
+- **QR Code Flyers**: Admins generate printable court flyers with QR codes — players who scan get their court pre-selected during signup
 - **Multi-neighborhood**: Data model supports multiple court groups for different neighborhoods
-- **Admin Panel**: Manage courts, users, and view site stats
+- **Admin Panel**: Manage courts, users (including banning), and view site stats
 
 ## Tech Stack
 
-- **Frontend**: React 19 + Vite + TypeScript + TailwindCSS
+- **Frontend**: React 19 + Vite + TypeScript + TailwindCSS 4
 - **Backend**: Supabase (PostgreSQL, Auth, Edge Functions, Realtime)
 - **Auth**: Google OAuth + Magic Link email (passwordless)
 - **Email**: Resend (transactional notifications)
@@ -25,9 +26,10 @@ A web app that helps neighbors find tennis partners at their local courts. Post 
 ### Prerequisites
 
 - Node.js 18+
-- A [Supabase](https://supabase.com) project (free tier works great)
+- [Docker](https://www.docker.com/) (for the local Supabase stack)
+- [Supabase CLI](https://supabase.com/docs/guides/cli) (`npm install -g supabase` or via Homebrew)
 
-### Setup
+### Local Setup
 
 1. **Clone and install**:
    ```bash
@@ -40,21 +42,32 @@ A web app that helps neighbors find tennis partners at their local courts. Post 
    ```bash
    cp .env.example .env
    ```
-   Edit `.env` with your Supabase project URL and anon key from [Supabase Dashboard](https://app.supabase.com) → Settings → API.
+   The defaults in `.env` work for local development — no edits needed to get started.
+   For QR flyer URLs to point at your public domain, set `VITE_APP_URL=https://your-app-domain.com`.
 
-3. **Set up the database**:
-   Run the SQL migrations in order against your Supabase project:
-   - `supabase/migrations/00001_initial_schema.sql` — Tables, RLS policies, triggers
-   - `supabase/migrations/00002_matchmaking_function.sql` — Matchmaking algorithm
+3. **Start the local Supabase stack and apply migrations**:
+   ```bash
+   npm run db:start   # starts local Supabase (Docker)
+   npm run db:reset   # applies all migrations + seed data
+   ```
 
-4. **Configure auth providers** in Supabase Dashboard → Authentication → Providers:
-   - Enable Google OAuth (requires Google Cloud Console credentials)
-   - Email/Magic Link is enabled by default
-
-5. **Run locally**:
+4. **Run the dev server**:
    ```bash
    npm run dev
    ```
+   App runs at `http://localhost:5173`. Supabase Studio at `http://127.0.0.1:54323`. Email catch (Mailpit) at `http://127.0.0.1:54324`.
+
+**Seed accounts**: `admin@localhost` (admin, NTRP 4.0) and `player2@localhost` (NTRP 3.5) — sign in with magic links and check Mailpit.
+
+### Hosted Supabase (production)
+
+1. Create a project at [Supabase Dashboard](https://app.supabase.com).
+2. Link the project: `supabase link --project-ref <ref>`
+3. Push migrations: `supabase db push`
+4. Configure auth providers under Authentication → Providers:
+   - Enable Google OAuth (requires Google Cloud Console credentials)
+   - Email/Magic Link is enabled by default
+5. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in your hosting provider's env vars (from Dashboard → Settings → API).
 
 ### Email notifications (optional, production)
 
@@ -76,6 +89,7 @@ To enable in production:
    ```bash
    supabase functions deploy send-notification-email
    supabase functions deploy unsubscribe
+   supabase functions deploy court-redirect
    ```
 4. Point the Postgres trigger at the Edge Functions (run once against the production DB via the dashboard SQL editor):
    ```sql
@@ -100,9 +114,20 @@ src/
 ├── lib/              # Supabase client
 ├── pages/            # Route pages
 ├── types/            # TypeScript types
-└── utils/            # NTRP ratings, calendar helpers
+└── utils/            # NTRP ratings, calendar helpers, onboarding
 supabase/
-└── migrations/       # SQL schema and functions
+├── functions/        # Edge Functions (send-notification-email, unsubscribe, court-redirect)
+├── migrations/       # Timestamp-prefixed SQL migrations
+└── seed.sql          # Local dev seed data
+docs/                 # Architecture and feature docs
+```
+
+## Testing
+
+```bash
+npm run test              # all tests
+npm run test:unit         # unit tests only
+npm run test:integration  # integration tests (requires local Supabase running)
 ```
 
 ## Cost
