@@ -6,7 +6,6 @@ A web app that helps neighbors find tennis partners at their local courts. Post 
 
 - **Smart Matchmaking**: Post when you're free, and the system automatically matches you with compatible players based on NTRP rating (±0.5) and time overlap
 - **Guided NTRP Rating**: Friendly skill-level picker with plain-language descriptions — no intimidating tennis jargon
-- **Singles & Doubles**: Support for both match types, with per-player preferences
 - **Court Crowding Warnings**: See when time slots are getting busy at your local courts
 - **Calendar Integration**: Add confirmed matches to Google Calendar or download .ics files
 - **Notifications**: In-app notification bell + email notifications for match proposals and confirmations, with per-type preferences
